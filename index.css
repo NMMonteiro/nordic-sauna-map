@@ -1,7 +1,3 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 :root {
   --primary: #2563EB;
   --sky: #7DD3FC;
@@ -9,7 +5,12 @@
 }
 
 body {
-  @apply bg-snow text-slate-900;
+  background-color: var(--snow);
+  color: #0f172a;
+  /* Slate 900 */
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -23,6 +24,10 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #334155;
   border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* Custom Marker Animation */

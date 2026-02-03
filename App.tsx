@@ -104,7 +104,8 @@ const App = () => {
         if (!sauna) return false;
 
         // Visibility check: Only show approved saunas to public/regular users
-        const isApproved = sauna.status === 'approved';
+        // If status is missing (mock data), we treat it as approved
+        const isApproved = !sauna.status || sauna.status === 'approved';
         const isOwner = user && sauna.created_by === user.id;
         const isAdmin = profile?.role === 'admin';
 
@@ -299,7 +300,7 @@ const App = () => {
         <div className="min-h-screen font-display bg-snow">
 
             {/* Top Navigation Bar */}
-            <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-sky/20">
+            <header className={`sticky top-0 z-[10000] w-full border-b transition-colors duration-300 ${isMenuOpen ? 'bg-white border-slate-200' : 'bg-white/80 backdrop-blur-md border-sky/20'}`}>
                 <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 py-4">
                     <div className="flex items-center gap-6 lg:gap-10">
                         <a className="flex items-center gap-3" href="#" onClick={scrollToSection('hero-section')}>
@@ -377,7 +378,7 @@ const App = () => {
 
                 {/* Mobile Navigation Overlay */}
                 {isMenuOpen && (
-                    <div className="md:hidden fixed inset-0 top-[73px] z-[100] bg-white animate-in slide-in-from-top duration-300">
+                    <div className="md:hidden fixed inset-0 top-[73px] z-[9999] bg-white w-full h-[calc(100vh-73px)] overflow-y-auto animate-in slide-in-from-top duration-300">
                         <div className="flex flex-col p-8 space-y-8">
                             <nav className="flex flex-col space-y-6">
                                 <button onClick={(e) => { scrollToSection('map-section')(e); setIsMenuOpen(false); }} className="text-2xl font-black uppercase tracking-tight text-slate-900 text-left">Archives</button>

@@ -61,15 +61,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, initia
     };
 
     return (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose}></div>
             <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
                 <div className="p-10">
                     <div className="text-center mb-10">
-                        <div className="size-16 bg-nordic-lake rounded-2xl flex items-center justify-center text-white mx-auto mb-6 shadow-xl shadow-primary/20">
-                            <span className="material-symbols-outlined text-3xl">lock</span>
+                        <div className="size-20 bg-nordic-lake rounded-[2rem] flex items-center justify-center text-white mx-auto mb-6 shadow-2xl shadow-primary/30">
+                            <span className="material-symbols-outlined text-4xl">lock_open</span>
                         </div>
-                        <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                        <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
                             {translations[mode][lang]}
                         </h2>
                         <p className="text-slate-500 mt-2 font-medium">
@@ -129,7 +129,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, initia
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-nordic-lake text-white font-black py-5 rounded-2xl shadow-xl shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 mt-6"
+                            className="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-xl shadow-slate-900/20 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 mt-6 uppercase tracking-widest text-xs"
                         >
                             {loading ? '...' : translations.submit[lang]}
                         </button>

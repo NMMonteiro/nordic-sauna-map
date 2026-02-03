@@ -94,7 +94,7 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
     };
 
     return (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[30000] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xl" onClick={onClose}></div>
 
             <div className="relative w-full max-w-4xl bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-500 font-display">
@@ -110,7 +110,7 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
                 </div>
 
                 {/* Tabs Nav */}
-                <div className="flex gap-4 px-10 py-6 bg-white border-b border-slate-100">
+                <div className="flex overflow-x-auto gap-4 px-10 py-6 bg-white border-b border-slate-100 no-scrollbar">
                     <TabButton active={activeTab === 'details'} onClick={() => setActiveTab('details')} label="General Info" icon="description" />
                     <TabButton active={activeTab === 'location'} onClick={() => setActiveTab('location')} label="Location & Map" icon="map" />
                     <TabButton active={activeTab === 'multimedia'} onClick={() => setActiveTab('multimedia')} label="Multimedia" icon="perm_media" />
@@ -120,7 +120,7 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
                 <div className="flex-1 overflow-y-auto p-10 custom-scrollbar max-h-[60vh]">
                     {activeTab === 'details' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <InputField
                                     label={`Sauna Name (${lang.toUpperCase()})`}
                                     value={editedData.content[lang].name}
@@ -182,7 +182,7 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
                                     onLocationSelect={(lat, lng) => setEditedData({ ...editedData, coordinates: { lat, lng } })}
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
                                     <p className="text-[10px] font-black uppercase text-slate-400 mb-1">LATITUDE</p>
                                     <p className="text-xl font-black text-slate-900 font-mono tracking-tight">{editedData.coordinates.lat.toFixed(6)}</p>
@@ -200,7 +200,7 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
                             {/* Images Section */}
                             <div className="space-y-4">
                                 <h3 className="text-xs font-black uppercase text-slate-900 tracking-widest pl-2">Photographic Archive</h3>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {(editedData.media.images || []).map((img, idx) => (
                                         <div key={idx} className="bg-slate-50 p-4 rounded-3xl border border-slate-100 space-y-3">
                                             <div className="aspect-video bg-white rounded-2xl overflow-hidden border border-slate-200 relative group">
@@ -252,7 +252,7 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
                                                 <span className="material-symbols-outlined">mic</span>
                                             </div>
                                             <div className="flex-1 space-y-4">
-                                                <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                     <input
                                                         placeholder="Track Title"
                                                         className="w-full bg-white border-none rounded-xl px-4 py-3 text-xs font-bold text-slate-900 shadow-sm"
@@ -378,7 +378,7 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="px-10 py-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-6">
+                <div className="px-6 md:px-10 py-8 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
                     {uploading && (
                         <div className="flex items-center gap-2 px-6 py-4 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest rounded-2xl animate-pulse">
                             <span className="material-symbols-outlined animate-spin text-sm">sync</span>
@@ -386,17 +386,17 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
                         </div>
                     )}
                     <div className="flex-1"></div>
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 w-full md:w-auto">
                         <button
                             onClick={onClose}
-                            className="px-10 py-4 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all shadow-sm"
+                            className="flex-1 md:flex-none px-10 py-4 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all shadow-sm"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={submitting || uploading}
-                            className="px-12 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-[1.05] transition-all disabled:opacity-50"
+                            className="flex-1 md:flex-none px-12 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-[1.05] transition-all disabled:opacity-50"
                         >
                             {submitting ? 'Preserving...' : 'Save Archive Changes'}
                         </button>

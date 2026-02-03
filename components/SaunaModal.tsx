@@ -75,7 +75,7 @@ export const SaunaModal: React.FC<SaunaModalProps> = ({ sauna, lang, onClose }) 
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-6 overflow-hidden">
+    <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4 md:p-6 overflow-hidden">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-xl transition-opacity animate-in fade-in duration-500" onClick={onClose}></div>
 

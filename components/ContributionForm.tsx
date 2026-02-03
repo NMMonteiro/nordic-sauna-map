@@ -139,14 +139,14 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
     };
 
     return (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose}></div>
 
-            <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-                <div className="p-8">
+            <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+                <div className="p-6 md:p-10">
                     <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-2xl font-black">{translations.title[lang]}</h2>
-                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                        <h2 className="text-2xl font-black tracking-tight">{translations.title[lang]}</h2>
+                        <button onClick={onClose} className="size-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all">
                             <span className="material-symbols-outlined">close</span>
                         </button>
                     </div>
@@ -164,11 +164,11 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Country</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Country</label>
                                         <select
-                                            className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none"
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary outline-none appearance-none cursor-pointer"
                                             value={formData.country}
                                             onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                                         >
@@ -179,21 +179,21 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
                                             <option value="Denmark">Denmark</option>
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">{translations.location[lang]}</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{translations.location[lang]}</label>
                                         <input
                                             type="text"
-                                            className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none"
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary outline-none"
                                             value={formData.location}
                                             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                                             placeholder="City / Region"
                                         />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">{translations.type[lang]}</label>
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{translations.type[lang]}</label>
                                     <select
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none"
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary outline-none appearance-none cursor-pointer font-bold"
                                         value={formData.type}
                                         onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                                     >
@@ -212,7 +212,7 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
                             </div>
                             <button
                                 onClick={() => setStep(2)}
-                                className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:bg-blue-600 transition-all"
+                                className="w-full bg-primary text-white font-black py-5 rounded-2xl shadow-xl shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all uppercase tracking-widest text-xs mt-4"
                             >
                                 {translations.next[lang]}
                             </button>

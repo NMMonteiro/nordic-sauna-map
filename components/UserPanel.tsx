@@ -159,7 +159,7 @@ export const UserPanel: React.FC<UserPanelProps> = ({ onClose, lang, user, profi
     };
 
     return (
-        <div className="fixed inset-0 z-[1200] flex bg-slate-50 animate-in fade-in duration-300 font-display">
+        <div className="fixed inset-0 z-[20000] flex bg-slate-50 animate-in fade-in duration-300 font-display">
             {/* Mobile Header */}
             <div className="lg:hidden absolute top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-[1210]">
                 <div className="flex items-center gap-3">

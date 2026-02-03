@@ -228,7 +228,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
     const logoUrl = "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/images/Favicon.png";
 
     return (
-        <div className="fixed inset-0 z-[1200] flex bg-slate-50 animate-in fade-in duration-300 font-display">
+        <div className="fixed inset-0 z-[20000] flex bg-slate-50 animate-in fade-in duration-300 font-display">
             {/* Mobile Header / Sidebar Toggle */}
             <div className="lg:hidden absolute top-0 left-0 right-0 h-16 bg-slate-900 flex items-center justify-between px-6 z-[1210]">
                 <div className="flex items-center gap-3">

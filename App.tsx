@@ -22,6 +22,7 @@ const App = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [lang, setLang] = useState<LanguageCode>('sv');
     const [loading, setLoading] = useState(true);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -300,10 +301,10 @@ const App = () => {
             {/* Top Navigation Bar */}
             <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-sky/20">
                 <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 py-4">
-                    <div className="flex items-center gap-10">
+                    <div className="flex items-center gap-6 lg:gap-10">
                         <a className="flex items-center gap-3" href="#" onClick={scrollToSection('hero-section')}>
                             <img src="/logo.png" className="size-8 object-contain" alt="Logo" />
-                            <h2 className="text-xl font-black tracking-tight uppercase text-primary">Nordic Sauna Map</h2>
+                            <h2 className="text-lg lg:text-xl font-black tracking-tight uppercase text-primary">Nordic Sauna Map</h2>
                         </a>
                         <nav className="hidden md:flex items-center gap-8">
                             <button className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" onClick={scrollToSection('map-section')}>Archives</button>
@@ -326,42 +327,125 @@ const App = () => {
                             </div>
                         </nav>
                     </div>
-                    <div className="flex items-center gap-4">
-                        {profile?.role === 'admin' && (
-                            <button
-                                onClick={() => setShowAdminPanel(true)}
-                                className="hidden lg:flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-800 transition-all font-display"
-                            >
-                                <span className="material-symbols-outlined text-sm">settings</span>
-                                Admin
-                            </button>
-                        )}
-                        {user ? (
-                            <div className="flex items-center gap-3">
+
+                    <div className="flex items-center gap-2 lg:gap-4">
+                        <div className="hidden sm:flex items-center gap-4">
+                            {profile?.role === 'admin' && (
                                 <button
-                                    onClick={() => setShowUserPanel(true)}
-                                    className="text-right cursor-pointer group hidden sm:block"
+                                    onClick={() => setShowAdminPanel(true)}
+                                    className="hidden lg:flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-800 transition-all font-display"
                                 >
-                                    <div className="text-[10px] font-black uppercase text-slate-400 leading-none mb-1 group-hover:text-primary transition-colors">Authenticated</div>
-                                    <div className="text-xs font-bold text-slate-800 leading-none group-hover:text-primary transition-colors">{profile?.full_name || user.email}</div>
+                                    <span className="material-symbols-outlined text-sm">settings</span>
+                                    Admin
                                 </button>
+                            )}
+                            {user ? (
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => setShowUserPanel(true)}
+                                        className="text-right cursor-pointer group hidden sm:block"
+                                    >
+                                        <div className="text-[10px] font-black uppercase text-slate-400 leading-none mb-1 group-hover:text-primary transition-colors">Authenticated</div>
+                                        <div className="text-xs font-bold text-slate-800 leading-none group-hover:text-primary transition-colors">{profile?.full_name || user.email}</div>
+                                    </button>
+                                    <button
+                                        onClick={() => supabase.auth.signOut()}
+                                        className="size-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                                    >
+                                        <span className="material-symbols-outlined text-xl">logout</span>
+                                    </button>
+                                </div>
+                            ) : (
                                 <button
-                                    onClick={() => supabase.auth.signOut()}
-                                    className="size-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                                    onClick={() => setShowAuthModal(true)}
+                                    className="px-6 py-2.5 bg-nordic-lake text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
                                 >
-                                    <span className="material-symbols-outlined text-xl">logout</span>
+                                    {lang === 'sv' ? 'Logga in' : lang === 'fi' ? 'Kirjaudu' : 'Sign In'}
                                 </button>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => setShowAuthModal(true)}
-                                className="px-6 py-2.5 bg-nordic-lake text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
-                            >
-                                {lang === 'sv' ? 'Logga in' : lang === 'fi' ? 'Kirjaudu' : 'Sign In'}
-                            </button>
-                        )}
+                            )}
+                        </div>
+
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className="md:hidden size-10 flex items-center justify-center text-slate-600 rounded-xl hover:bg-slate-50"
+                        >
+                            <span className="material-symbols-outlined">{isMenuOpen ? 'close' : 'menu'}</span>
+                        </button>
                     </div>
                 </div>
+
+                {/* Mobile Navigation Overlay */}
+                {isMenuOpen && (
+                    <div className="md:hidden fixed inset-0 top-[73px] z-[100] bg-white animate-in slide-in-from-top duration-300">
+                        <div className="flex flex-col p-8 space-y-8">
+                            <nav className="flex flex-col space-y-6">
+                                <button onClick={(e) => { scrollToSection('map-section')(e); setIsMenuOpen(false); }} className="text-2xl font-black uppercase tracking-tight text-slate-900 text-left">Archives</button>
+                                <button onClick={(e) => { scrollToSection('education-section')(e); setIsMenuOpen(false); }} className="text-2xl font-black uppercase tracking-tight text-slate-900 text-left">Education</button>
+                                <button onClick={(e) => { scrollToSection('about-section')(e); setIsMenuOpen(false); }} className="text-2xl font-black uppercase tracking-tight text-slate-900 text-left">About</button>
+                            </nav>
+
+                            <div className="h-px bg-slate-100" />
+
+                            <div className="space-y-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Language / Språk / Kieli</p>
+                                <div className="flex gap-4">
+                                    {['sv', 'fi', 'en'].map((l) => (
+                                        <button
+                                            key={l}
+                                            onClick={() => { setLang(l as any); setIsMenuOpen(false); }}
+                                            className={`px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-widest transition-all ${lang === l ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-slate-50 text-slate-400'}`}
+                                        >
+                                            {l}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="h-px bg-slate-100" />
+
+                            <div className="pt-4">
+                                {user ? (
+                                    <div className="space-y-4">
+                                        <button
+                                            onClick={() => { setShowUserPanel(true); setIsMenuOpen(false); }}
+                                            className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-2xl"
+                                        >
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Profile</p>
+                                                <p className="font-bold text-slate-900">{profile?.full_name || user.email}</p>
+                                            </div>
+                                            <span className="material-symbols-outlined text-slate-400">chevron_right</span>
+                                        </button>
+                                        {profile?.role === 'admin' && (
+                                            <button
+                                                onClick={() => { setShowAdminPanel(true); setIsMenuOpen(false); }}
+                                                className="w-full flex items-center gap-3 p-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest"
+                                            >
+                                                <span className="material-symbols-outlined">settings</span>
+                                                Admin Console
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => { supabase.auth.signOut(); setIsMenuOpen(false); }}
+                                            className="w-full flex items-center gap-3 p-4 text-red-500 font-black uppercase text-xs tracking-widest"
+                                        >
+                                            <span className="material-symbols-outlined">logout</span>
+                                            Log Out
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => { setShowAuthModal(true); setIsMenuOpen(false); }}
+                                        className="w-full py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20"
+                                    >
+                                        Sign In
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </header>
 
             <main className="w-full">

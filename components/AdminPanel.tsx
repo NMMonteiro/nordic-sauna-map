@@ -2,16 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Profile, Sauna } from '../types';
 import { EditArchiveModal } from './EditArchiveModal';
+import { EducationManager } from './EducationManager';
+import { BlogManager } from './BlogManager';
+import { User } from '@supabase/supabase-js';
 
 interface AdminPanelProps {
     onClose: () => void;
     lang: 'sv' | 'fi' | 'en';
     onUpdate?: () => void;
+    profile?: Profile | null;
+    user?: User | null;
 }
 
-type AdminTab = 'dashboard' | 'users' | 'moderation' | 'archives' | 'user_detail';
+type AdminTab = 'dashboard' | 'users' | 'moderation' | 'archives' | 'education' | 'blog_moderation' | 'user_detail';
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate, profile, user }) => {
     const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [saunas, setSaunas] = useState<Sauna[]>([]);
@@ -26,8 +31,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
         totalSaunas: 0,
         pendingSaunas: 0,
         approvedSaunas: 0,
-        totalViews: 0
+        totalViews: 0,
+        totalMaterials: 0,
+        pendingPosts: 0
     });
+    const [materials, setMaterials] = useState<any[]>([]);
+    const [pendingPosts, setPendingPosts] = useState<any[]>([]);
     const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending_approval' | 'rejected'>('all');
 
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
@@ -35,13 +44,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
     const t = {
         en: {
             dashboard: 'Dashboard',
-            users: 'User Management',
-            moderation: 'Moderation',
-            archives: 'Global Archive',
+            users: 'Members',
+            moderation: 'Sauna Submissions',
+            archives: 'Sauna Map',
             exit: 'Exit Console',
             sync: 'Synchronizing Archive...',
-            total_users: 'Total Users',
-            waiting: 'Waiting Moderation',
+            total_users: 'Total Members',
+            waiting: 'Pending Review',
             arch_count: 'Archive Count',
             views: 'Content Views',
             distribution: 'Archive Distribution',
@@ -59,17 +68,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
             all: 'All',
             approved: 'Approved',
             pending: 'Pending',
-            rejected: 'Rejected'
+            rejected: 'Rejected',
+            education: 'Pedagogical',
+            blog: 'Story Entries'
         },
         sv: {
             dashboard: 'Översikt',
-            users: 'Användare',
-            moderation: 'Moderering',
-            archives: 'Globalt Arkiv',
+            users: 'Medlemmar',
+            moderation: 'Bastuinlämningar',
+            archives: 'Bastukarta',
             exit: 'Avsluta Konsol',
             sync: 'Synkroniserar Arkiv...',
-            total_users: 'Totalt Antal Användare',
-            waiting: 'Väntar på Moderering',
+            total_users: 'Totalt Antal Medlemmar',
+            waiting: 'Väntar på granskning',
             arch_count: 'Antal Arkiv',
             views: 'Visningar',
             distribution: 'Arkivfördelning',
@@ -87,17 +98,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
             all: 'Alla',
             approved: 'Godkända',
             pending: 'Väntande',
-            rejected: 'Nekade'
+            rejected: 'Nekade',
+            education: 'Pedagogiskt',
+            blog: 'Stories-moderering'
         },
         fi: {
             dashboard: 'Hallintapaneeli',
-            users: 'Käyttäjien hallinta',
-            moderation: 'Moderointi',
-            archives: 'Globaali arkisto',
+            users: 'Jäsenet',
+            moderation: 'Saunahakemukset',
+            archives: 'Saunakartta',
             exit: 'Poistu hallinnasta',
             sync: 'Synkronoidaan arkistoa...',
-            total_users: 'Käyttäjiä yhteensä',
-            waiting: 'Odottaa moderointia',
+            total_users: 'Jäseniä yhteensä',
+            waiting: 'Odottaa tarkistusta',
             arch_count: 'Arkistojen määrä',
             views: 'Katselukerrat',
             distribution: 'Arkistojen jakautuminen',
@@ -115,7 +128,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
             all: 'Kaikki',
             approved: 'Hyväksytyt',
             pending: 'Odottaa',
-            rejected: 'Hylätyt'
+            rejected: 'Hylätyt',
+            education: 'Pedagoginen',
+            blog: 'Tarinoiden moderointi'
         }
     }[lang];
 
@@ -131,6 +146,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
             const { count: sCount } = await supabase.from('saunas').select('*', { count: 'exact', head: true });
             const { count: psCount } = await supabase.from('saunas').select('*', { count: 'exact', head: true }).eq('status', 'pending_approval');
             const { count: asCount } = await supabase.from('saunas').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+            const { count: mCount } = await supabase.from('learning_materials').select('*', { count: 'exact', head: true });
+            const { count: ppCount } = await supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'pending_approval');
             const { data: vData } = await supabase.from('saunas').select('views');
 
             const totalViews = vData?.reduce((acc, curr) => acc + (curr.views || 0), 0) || 0;
@@ -141,7 +158,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
                 totalSaunas: sCount || 0,
                 pendingSaunas: psCount || 0,
                 approvedSaunas: asCount || 0,
-                totalViews
+                totalViews,
+                totalMaterials: mCount || 0,
+                pendingPosts: ppCount || 0
             });
 
             if (activeTab === 'users') {
@@ -157,6 +176,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
                 }
                 const { data } = await query;
                 if (data) setSaunas(data as Sauna[]);
+            } else if (activeTab === 'education') {
+                const { data } = await supabase.from('learning_materials').select('*').order('created_at', { ascending: false });
+                if (data) setMaterials(data);
+            } else if (activeTab === 'blog_moderation') {
+                const { data } = await supabase.from('blog_posts').select('*, profiles(full_name)').order('created_at', { ascending: false });
+                if (data) setPendingPosts(data);
             }
         } catch (err) {
             console.error('Fetch Admin Data Error:', err);
@@ -197,6 +222,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
             if (activeTab === 'user_detail' && selectedUser) fetchUserSaunas(selectedUser);
             else fetchData();
         }
+    };
+
+    const handlePostStatus = async (postId: string, status: 'approved' | 'rejected') => {
+        const { error } = await supabase.from('blog_posts').update({ status }).eq('id', postId);
+        if (!error) fetchData();
+        else alert(error.message);
     };
 
     const deleteSauna = async (saunaId: string) => {
@@ -250,29 +281,66 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
                     </div>
                 </div>
 
-                <nav className="flex-1 space-y-2 lg:mt-0 mt-8">
-                    <NavItem
-                        icon="dashboard" label={t.dashboard}
-                        active={activeTab === 'dashboard'}
-                        onClick={() => { setActiveTab('dashboard'); setSidebarOpen(false); }}
-                    />
-                    <NavItem
-                        icon="group" label={t.users}
-                        active={activeTab === 'users' || activeTab === 'user_detail'}
-                        badge={stats.pendingUsers > 0 ? stats.pendingUsers : undefined}
-                        onClick={() => { setActiveTab('users'); setSidebarOpen(false); }}
-                    />
-                    <NavItem
-                        icon="verified_user" label={t.moderation}
-                        active={activeTab === 'moderation'}
-                        badge={stats.pendingSaunas > 0 ? stats.pendingSaunas : undefined}
-                        onClick={() => { setActiveTab('moderation'); setSidebarOpen(false); }}
-                    />
-                    <NavItem
-                        icon="inventory_2" label={t.archives}
-                        active={activeTab === 'archives'}
-                        onClick={() => { setActiveTab('archives'); setSidebarOpen(false); }}
-                    />
+                <nav className="flex-1 space-y-6 lg:mt-0 mt-8">
+                    <div>
+                        <div className="px-6 mb-3">
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Platform</p>
+                        </div>
+                        <div className="space-y-1">
+                            <NavItem
+                                icon="dashboard" label={t.dashboard}
+                                active={activeTab === 'dashboard'}
+                                onClick={() => { setActiveTab('dashboard'); setSidebarOpen(false); }}
+                            />
+                            <NavItem
+                                icon="group" label={lang === 'sv' ? 'Medlemmar' : lang === 'fi' ? 'Jäsenet' : 'Members'}
+                                active={activeTab === 'users' || activeTab === 'user_detail'}
+                                badge={stats.pendingUsers > 0 ? stats.pendingUsers : undefined}
+                                onClick={() => { setActiveTab('users'); setSidebarOpen(false); }}
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <div className="px-6 mb-3 flex items-center justify-between">
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Moderation</p>
+                            {(stats.pendingSaunas + stats.pendingPosts) > 0 && (
+                                <span className="size-2 bg-red-500 rounded-full animate-pulse"></span>
+                            )}
+                        </div>
+                        <div className="space-y-1">
+                            <NavItem
+                                icon="verified_user" label={t.moderation}
+                                active={activeTab === 'moderation'}
+                                badge={stats.pendingSaunas > 0 ? stats.pendingSaunas : undefined}
+                                onClick={() => { setActiveTab('moderation'); setSidebarOpen(false); }}
+                            />
+                            <NavItem
+                                icon="history_edu" label={t.blog}
+                                active={activeTab === 'blog_moderation'}
+                                badge={stats.pendingPosts > 0 ? stats.pendingPosts : undefined}
+                                onClick={() => { setActiveTab('blog_moderation'); setSidebarOpen(false); }}
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <div className="px-6 mb-3">
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Database</p>
+                        </div>
+                        <div className="space-y-1">
+                            <NavItem
+                                icon="inventory_2" label={t.archives}
+                                active={activeTab === 'archives'}
+                                onClick={() => { setActiveTab('archives'); setSidebarOpen(false); }}
+                            />
+                            <NavItem
+                                icon="school" label={t.education}
+                                active={activeTab === 'education'}
+                                onClick={() => { setActiveTab('education'); setSidebarOpen(false); }}
+                            />
+                        </div>
+                    </div>
                 </nav>
 
                 <div className="pt-8 mt-8 border-t border-white/10">
@@ -339,6 +407,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate 
                                     </div>
                                     <ArchiveListView saunas={saunas} lang={lang} t={t} onEdit={setEditingSauna} onDelete={deleteSauna} />
                                 </div>
+                            )}
+                            {activeTab === 'education' && (
+                                <EducationManager materials={materials} t={t} onRefresh={fetchData} profile={profile} />
+                            )}
+                            {activeTab === 'blog_moderation' && user && (
+                                <BlogManager posts={pendingPosts} t={t} onRefresh={fetchData} profile={profile} user={user} lang={lang} />
                             )}
                             {activeTab === 'user_detail' && selectedUser && (
                                 <UserDetailView user={selectedUser} saunas={userSaunas} lang={lang} t={t} onBack={() => setActiveTab('users')} onApprove={handleSaunaStatus} onEdit={setEditingSauna} onDelete={deleteSauna} />
@@ -553,5 +627,48 @@ const ArchiveListView = ({ saunas, lang, t, onEdit, onDelete }: any) => (
                 </div>
             );
         })}
+    </div>
+);
+
+const BlogModerationView = ({ posts, onApprove, onReject }: any) => (
+    <div className="space-y-6">
+        {posts.length === 0 ? (
+            <div className="py-20 text-center text-slate-200 font-black uppercase tracking-[0.2em]">No stories waiting review</div>
+        ) : (
+            <div className="grid grid-cols-1 gap-6">
+                {posts.map((p: any) => (
+                    <div key={p.id} className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden flex flex-col md:flex-row">
+                        {(() => {
+                            let mediaUrls = [];
+                            try {
+                                if (Array.isArray(p.media_urls)) mediaUrls = p.media_urls;
+                                else if (typeof p.media_urls === 'string') mediaUrls = JSON.parse(p.media_urls);
+                            } catch (e) { }
+
+                            return mediaUrls?.[0] ? (
+                                <div className="md:w-64 h-48 md:h-auto">
+                                    <img src={mediaUrls[0]} className="w-full h-full object-cover" alt="Post" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                                </div>
+                            ) : null;
+                        })()}
+                        <div className="p-8 flex-1">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-900 uppercase mb-1">{p.title}</h3>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        By {(Array.isArray(p.profiles) ? p.profiles[0] : p.profiles)?.full_name || 'Unknown'} • {new Date(p.created_at).toLocaleDateString()}
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => onApprove(p.id, 'approved')} className="bg-green-500 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-600 transition-all">Approve</button>
+                                    <button onClick={() => onReject(p.id, 'rejected')} className="bg-slate-100 text-slate-400 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-50 hover:text-red-500 transition-all">Reject</button>
+                                </div>
+                            </div>
+                            <div className="text-sm text-slate-500 font-light line-clamp-3 leading-relaxed" dangerouslySetInnerHTML={{ __html: p.content }} />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )}
     </div>
 );

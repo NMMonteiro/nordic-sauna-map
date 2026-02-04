@@ -3,6 +3,7 @@ import { Sauna, Country } from './types';
 export const SAUNAS: Sauna[] = [
   {
     sauna_id: '1',
+    country: Country.FINLAND,
     coordinates: { lat: 60.1583, lng: 24.9333 },
     metadata: {
       country: Country.FINLAND,
@@ -52,10 +53,12 @@ export const SAUNAS: Sauna[] = [
     contact: {
       website: 'https://www.loylyhelsinki.fi',
       address: 'Hernesaari, Helsinki'
-    }
+    },
+    status: 'approved'
   },
   {
     sauna_id: '2',
+    country: Country.FINLAND,
     coordinates: { lat: 61.5033, lng: 23.7333 },
     metadata: {
       country: Country.FINLAND,
@@ -87,10 +90,12 @@ export const SAUNAS: Sauna[] = [
     contact: {
       website: 'https://www.rajaportinsauna.fi',
       address: 'Pispala, Tampere'
-    }
+    },
+    status: 'approved'
   },
   {
     sauna_id: '3',
+    country: Country.SWEDEN,
     coordinates: { lat: 55.6050, lng: 12.9640 },
     metadata: {
       country: Country.SWEDEN,
@@ -122,10 +127,12 @@ export const SAUNAS: Sauna[] = [
     contact: {
       website: 'https://ribersborgskallbadhus.se',
       address: 'Malmö, Sweden'
-    }
+    },
+    status: 'approved'
   },
   {
     sauna_id: '4',
+    country: Country.SWEDEN,
     coordinates: { lat: 56.0465, lng: 12.6945 },
     metadata: {
       country: Country.SWEDEN,
@@ -157,10 +164,12 @@ export const SAUNAS: Sauna[] = [
     contact: {
       website: 'https://palsjobaden.se',
       address: 'Helsingborg, Sweden'
-    }
+    },
+    status: 'approved'
   },
   {
     sauna_id: '5',
+    country: Country.FINLAND,
     coordinates: { lat: 60.1667, lng: 24.9667 },
     metadata: {
       country: Country.FINLAND,
@@ -192,10 +201,12 @@ export const SAUNAS: Sauna[] = [
     contact: {
       website: 'https://sompasauna.fi',
       address: 'Verkkosaari, Helsinki'
-    }
+    },
+    status: 'approved'
   },
   {
     sauna_id: '6',
+    country: Country.SWEDEN,
     coordinates: { lat: 56.1612, lng: 15.5869 },
     metadata: {
       country: Country.SWEDEN,
@@ -227,10 +238,12 @@ export const SAUNAS: Sauna[] = [
     contact: {
       website: 'https://karlskrona.se',
       address: 'Karlskrona, Sweden'
-    }
+    },
+    status: 'approved'
   },
   {
     sauna_id: '7',
+    country: Country.FINLAND,
     coordinates: { lat: 60.1658, lng: 24.9431 },
     metadata: {
       country: Country.FINLAND,
@@ -243,10 +256,12 @@ export const SAUNAS: Sauna[] = [
       en: { name: 'Allas Sea Pool', description: 'Swimming and sauna in the heart of Helsinki.', etiquette: 'Showering is required.' }
     },
     media: { images: ['https://images.unsplash.com/photo-1549416801-667793d92004?q=80&w=2073'], audio_interviews: [], video_clips: [] },
-    contact: { website: 'https://allasseapool.fi', address: 'Market Square, Helsinki' }
+    contact: { website: 'https://allasseapool.fi', address: 'Market Square, Helsinki' },
+    status: 'approved'
   },
   {
     sauna_id: '8',
+    country: Country.SWEDEN,
     coordinates: { lat: 59.3293, lng: 18.0686 },
     metadata: {
       country: Country.SWEDEN,
@@ -259,10 +274,12 @@ export const SAUNAS: Sauna[] = [
       en: { name: 'Centralbadet', description: 'An Art Nouveau gem for health and well-being.', etiquette: 'Enjoy the tranquility.' }
     },
     media: { images: ['https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070'], audio_interviews: [], video_clips: [] },
-    contact: { website: 'https://centralbadet.se', address: 'Stockholm, Sweden' }
+    contact: { website: 'https://centralbadet.se', address: 'Stockholm, Sweden' },
+    status: 'approved'
   },
   {
     sauna_id: '9',
+    country: Country.SWEDEN,
     coordinates: { lat: 68.3495, lng: 18.8312 },
     metadata: {
       country: Country.SWEDEN,
@@ -275,6 +292,7 @@ export const SAUNAS: Sauna[] = [
       en: { name: 'Abisko Sauna', description: 'Sauna under the Northern Lights.', etiquette: 'Watch for the Aurora.' }
     },
     media: { images: ['https://images.unsplash.com/photo-1596230502424-aa6174571d1b?q=80&w=2031'], audio_interviews: [], video_clips: [] },
-    contact: { website: 'https://abisko.se', address: 'Abisko, Sweden' }
+    contact: { website: 'https://abisko.se', address: 'Abisko, Sweden' },
+    status: 'approved'
   }
 ];

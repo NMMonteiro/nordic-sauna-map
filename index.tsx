@@ -1,6 +1,7 @@
 import React, { Component, ReactNode } from 'react';
 import './index.css';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 
 console.log("Archive system bootstrapping...");
@@ -55,8 +56,10 @@ class ErrorBoundary extends Component<Props, State> {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <BrowserRouter>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </BrowserRouter>
   </React.StrictMode>
 );

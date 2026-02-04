@@ -65,6 +65,7 @@ export interface Profile {
 export interface Sauna {
   id?: string;
   sauna_id: string;
+  country: Country | string;
   coordinates: Coordinates;
   metadata: {
     country: Country | string;
@@ -76,6 +77,37 @@ export interface Sauna {
   contact: Contact;
   status: 'pending_approval' | 'approved' | 'rejected';
   created_by?: string;
+  created_at?: string;
   pedagogical_link?: string;
   views?: number;
+}
+
+export type MaterialType = 'pdf' | 'presentation' | 'video' | 'twee';
+
+export interface LearningMaterial {
+  id: string;
+  title: string;
+  description: string;
+  type: MaterialType;
+  url?: string;
+  file_path?: string;
+  thumbnail?: string;
+  created_at: string;
+  created_by: string;
+}
+
+export type PostStatus = 'pending_approval' | 'approved' | 'rejected';
+
+export interface BlogPost {
+  id: string;
+  author_id: string;
+  title: string;
+  content: string;
+  media_urls: string[];
+  category?: string;
+  views?: number;
+  status: PostStatus;
+  created_at: string;
+  updated_at: string;
+  author_name?: string;
 }

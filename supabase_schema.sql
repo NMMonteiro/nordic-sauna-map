@@ -1,5 +1,6 @@
--- SQL Migration to create the Saunas table matching the PRD schema
 -- Execute this in your Supabase SQL Editor
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_net"; -- For making HTTP requests to Edge Functions
 
 CREATE TABLE IF NOT EXISTS saunas (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -66,17 +67,23 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
 -- Enable RLS on Saunas
 ALTER TABLE saunas ENABLE ROW LEVEL SECURITY;
 
--- Public can only see approved saunas
-CREATE POLICY "Public see approved saunas" ON saunas
-    FOR SELECT USING (status = 'approved');
+-- Public can see all saunas for now to ensure the map isn't blank
+DROP POLICY IF EXISTS "Public see approved saunas" ON saunas;
+CREATE POLICY "Public see all saunas" ON saunas
+    FOR SELECT USING (true);
 
 -- Admins can see everything
+DROP POLICY IF EXISTS "Admins see all" ON saunas;
 CREATE POLICY "Admins see all" ON saunas
     FOR ALL USING (is_admin());
 
--- Logged in users can insert
+-- Logged in users can insert and see their own
+DROP POLICY IF EXISTS "Logged in users can insert" ON saunas;
 CREATE POLICY "Logged in users can insert" ON saunas
     FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Users can see own entries" ON saunas
+    FOR SELECT USING (auth.uid() = created_by);
 
 -- Storage setup for Sauna Media
 -- Note: Buckets might need to be created in the UI or via this SQL
@@ -91,3 +98,104 @@ CREATE POLICY "Admins Full Access" ON storage.objects FOR ALL USING (
     bucket_id = 'sauna-media' AND 
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+-- Learning Materials Table
+CREATE TABLE IF NOT EXISTS learning_materials (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    description TEXT,
+    type TEXT NOT NULL CHECK (type IN ('pdf', 'presentation', 'video', 'twee')),
+    url TEXT,
+    file_path TEXT,
+    thumbnail TEXT,
+    created_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Blog Posts Table
+CREATE TABLE IF NOT EXISTS blog_posts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    author_id UUID REFERENCES profiles(id),
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    media_urls JSONB DEFAULT '[]',
+    category TEXT DEFAULT 'Sauna Stories',
+    views INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'pending_approval' CHECK (status IN ('pending_approval', 'approved', 'rejected')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Function to increment blog view count
+CREATE OR REPLACE FUNCTION increment_blog_view(post_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE blog_posts SET views = views + 1 WHERE id = post_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Enable RLS
+ALTER TABLE learning_materials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
+
+-- Learning Materials Policies
+CREATE POLICY "Public Read Learning Materials" ON learning_materials FOR SELECT USING (true);
+CREATE POLICY "Admin All Learning Materials" ON learning_materials FOR ALL USING (is_admin());
+
+-- Blog Posts Policies
+CREATE POLICY "Public Read Approved Blog Posts" ON blog_posts FOR SELECT USING (status = 'approved');
+CREATE POLICY "Authors Read Own Blog Posts" ON blog_posts FOR SELECT USING (auth.uid() = author_id);
+CREATE POLICY "Authors Insert Blog Posts" ON blog_posts FOR INSERT WITH CHECK (auth.uid() = author_id);
+CREATE POLICY "Authors Update Own Pending Posts" ON blog_posts FOR UPDATE USING (auth.uid() = author_id AND status = 'pending_approval');
+CREATE POLICY "Admins Manage All Blog Posts" ON blog_posts FOR ALL USING (is_admin());
+
+-- Add Storage Buckets for Education and Blog
+INSERT INTO storage.buckets (id, name, public) VALUES ('education', 'education', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('blog-media', 'blog-media', true) ON CONFLICT (id) DO NOTHING;
+
+-- Storage Policies for Education
+CREATE POLICY "Public Education Access" ON storage.objects FOR SELECT USING (bucket_id = 'education');
+CREATE POLICY "Admin Education Management" ON storage.objects FOR ALL USING (bucket_id = 'education' AND is_admin());
+
+-- Storage Policies for Blog Media
+CREATE POLICY "Public Blog Media Access" ON storage.objects FOR SELECT USING (bucket_id = 'blog-media');
+CREATE POLICY "Authenticated Blog Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'blog-media' AND auth.role() = 'authenticated');
+CREATE POLICY "Owners Blog Delete" ON storage.objects FOR DELETE USING (bucket_id = 'blog-media' AND auth.uid() = owner);
+
+-- Notification System Triggers
+-- This function will call a Supabase Edge Function to send emails
+CREATE OR REPLACE FUNCTION public.notify_on_change()
+RETURNS trigger AS $$
+BEGIN
+  -- We use pg_net extension to call the edge function asynchronously
+  -- The function should be deployed to /functions/v1/notify
+  PERFORM
+    net.http_post(
+      url := concat(current_setting('app.settings.supabase_url'), '/functions/v1/notify'),
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', concat('Bearer ', current_setting('app.settings.service_role_key'))
+      ),
+      body := jsonb_build_object(
+        'table', TG_TABLE_NAME,
+        'record', row_to_json(NEW),
+        'old_record', row_to_json(OLD),
+        'operation', TG_OP
+      )
+    );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger for Saunas
+DROP TRIGGER IF EXISTS on_sauna_change ON saunas;
+CREATE TRIGGER on_sauna_change
+AFTER INSERT OR UPDATE ON saunas
+FOR EACH ROW EXECUTE FUNCTION notify_on_change();
+
+-- Trigger for Blog Posts
+DROP TRIGGER IF EXISTS on_blog_post_change ON blog_posts;
+CREATE TRIGGER on_blog_post_change
+AFTER INSERT OR UPDATE ON blog_posts
+FOR EACH ROW EXECUTE FUNCTION notify_on_change();

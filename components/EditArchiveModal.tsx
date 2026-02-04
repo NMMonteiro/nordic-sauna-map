@@ -139,6 +139,17 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
 
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Country / Land</label>
+                                    <select
+                                        className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+                                        value={editedData.country}
+                                        onChange={(e) => setEditedData({ ...editedData, country: e.target.value, metadata: { ...editedData.metadata, country: e.target.value } })}
+                                    >
+                                        <option value="Finland">Finland</option>
+                                        <option value="Sweden">Sweden</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Bastutyp / Sauna Type</label>
                                     <select
                                         className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 focus:ring-2 focus:ring-primary appearance-none cursor-pointer"

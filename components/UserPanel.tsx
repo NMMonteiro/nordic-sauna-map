@@ -3,6 +3,8 @@ import { supabase } from '../supabaseClient';
 import { Profile, Sauna } from '../types';
 import { User } from '@supabase/supabase-js';
 import { EditArchiveModal } from './EditArchiveModal';
+import { EducationManager } from './EducationManager';
+import { BlogManager } from './BlogManager';
 
 interface UserPanelProps {
     onClose: () => void;
@@ -13,12 +15,14 @@ interface UserPanelProps {
     onUpdate?: () => void;
 }
 
-type UserTab = 'overview' | 'submissions' | 'settings';
+type UserTab = 'overview' | 'submissions' | 'education' | 'blog' | 'settings';
 
 export const UserPanel: React.FC<UserPanelProps> = ({ onClose, lang, user, profile, onAddSauna, onUpdate }) => {
     const [activeTab, setActiveTab] = useState<UserTab>('overview');
     const [mySaunas, setMySaunas] = useState<Sauna[]>([]);
     const [editingSauna, setEditingSauna] = useState<Sauna | null>(null);
+    const [materials, setMaterials] = useState<any[]>([]);
+    const [myPosts, setMyPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setSidebarOpen] = useState(false);
 
@@ -42,7 +46,9 @@ export const UserPanel: React.FC<UserPanelProps> = ({ onClose, lang, user, profi
             no_contrib: 'No contributions yet',
             edit: 'Edit',
             member: 'Member',
-            contributor: 'Contributor'
+            contributor: 'Contributor',
+            education: 'My Educational Resources',
+            blog: 'My Stories'
         },
         sv: {
             overview: 'Översikt',
@@ -63,7 +69,9 @@ export const UserPanel: React.FC<UserPanelProps> = ({ onClose, lang, user, profi
             no_contrib: 'Inga bidrag ännu',
             edit: 'Redigera',
             member: 'Medlem',
-            contributor: 'Bidragsgivare'
+            contributor: 'Bidragsgivare',
+            education: 'Mina pedagogiska resurser',
+            blog: 'Mina berättelser'
         },
         fi: {
             overview: 'Yleiskatsaus',
@@ -84,7 +92,9 @@ export const UserPanel: React.FC<UserPanelProps> = ({ onClose, lang, user, profi
             no_contrib: 'Ei vielä lähetyksiä',
             edit: 'Muokkaa',
             member: 'Jäsen',
-            contributor: 'Avustaja'
+            contributor: 'Avustaja',
+            education: 'Omat opetusmateriaalit',
+            blog: 'Omat tarinat'
         }
     }[lang];
 
@@ -118,6 +128,25 @@ export const UserPanel: React.FC<UserPanelProps> = ({ onClose, lang, user, profi
                     totalViews: subData.reduce((acc, curr) => acc + (curr.views || 0), 0)
                 });
             }
+
+            // Fetch user's educational materials
+            const { data: matData } = await supabase
+                .from('learning_materials')
+                .select('*')
+                .eq('created_by', user.id)
+                .order('created_at', { ascending: false });
+
+            if (matData) setMaterials(matData);
+
+            // Fetch user's blog posts
+            const { data: postData } = await supabase
+                .from('blog_posts')
+                .select('*')
+                .eq('author_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (postData) setMyPosts(postData);
+
         } catch (err) {
             console.error('Fetch User Data Error:', err);
         }
@@ -183,17 +212,31 @@ export const UserPanel: React.FC<UserPanelProps> = ({ onClose, lang, user, profi
 
                 <nav className="flex-1 space-y-2 lg:mt-0 mt-8">
                     <UserNavItem
-                        icon="home"
+                        icon="dashboard"
                         label={t.overview}
                         active={activeTab === 'overview'}
                         onClick={() => { setActiveTab('overview'); setSidebarOpen(false); }}
                     />
                     <UserNavItem
-                        icon="history"
+                        icon="inventory_2"
                         label={t.submissions}
                         active={activeTab === 'submissions'}
                         badge={mySaunas.length}
                         onClick={() => { setActiveTab('submissions'); setSidebarOpen(false); }}
+                    />
+                    <UserNavItem
+                        icon="school"
+                        label={t.education}
+                        active={activeTab === 'education'}
+                        badge={materials.length}
+                        onClick={() => { setActiveTab('education'); setSidebarOpen(false); }}
+                    />
+                    <UserNavItem
+                        icon="auto_stories"
+                        label={t.blog}
+                        active={activeTab === 'blog'}
+                        badge={myPosts.length}
+                        onClick={() => { setActiveTab('blog'); setSidebarOpen(false); }}
                     />
                     <UserNavItem
                         icon="settings"
@@ -203,12 +246,19 @@ export const UserPanel: React.FC<UserPanelProps> = ({ onClose, lang, user, profi
                     />
                 </nav>
 
-                <div className="pt-8 mt-8 border-t border-slate-100">
+                <div className="pt-8 mt-8 border-t border-slate-100 flex flex-col gap-4">
+                    <button
+                        onClick={onAddSauna}
+                        className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 shadow-xl shadow-slate-900/10 transition-all"
+                    >
+                        <span className="material-symbols-outlined text-lg">add_circle</span>
+                        {t.submit}
+                    </button>
                     <button
                         onClick={onClose}
                         className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl bg-slate-50 text-slate-400 font-bold text-sm hover:bg-slate-100 hover:text-slate-900 transition-all"
                     >
-                        <span className="material-symbols-outlined text-xl">map</span>
+                        <span className="material-symbols-outlined text-xl">logout</span>
                         {t.back}
                     </button>
                 </div>
@@ -217,16 +267,15 @@ export const UserPanel: React.FC<UserPanelProps> = ({ onClose, lang, user, profi
             {/* Main Content */}
             <main className="flex-1 flex flex-col overflow-hidden lg:pt-0 pt-16">
                 <header className="h-24 bg-white border-b border-slate-200 hidden lg:flex items-center justify-between px-10">
-                    <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">
-                        {t[activeTab]}
-                    </h1>
+                    <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">{t[activeTab]}</h1>
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => { onClose(); onAddSauna(); }}
-                            className="bg-primary text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-all"
-                        >
-                            {t.submit}
-                        </button>
+                        <div className="text-right">
+                            <p className="text-sm font-bold text-slate-900">{profile?.full_name}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{profile?.role}</p>
+                        </div>
+                        <div className="size-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold">
+                            {profile?.full_name?.[0] || 'U'}
+                        </div>
                     </div>
                 </header>
 
@@ -242,6 +291,12 @@ export const UserPanel: React.FC<UserPanelProps> = ({ onClose, lang, user, profi
                             )}
                             {activeTab === 'submissions' && (
                                 <UserSubmissionsList saunas={mySaunas} lang={lang} t={t} onEdit={setEditingSauna} onDelete={deleteSauna} />
+                            )}
+                            {activeTab === 'education' && (
+                                <EducationManager materials={materials} t={t} onRefresh={fetchUserData} profile={profile} />
+                            )}
+                            {activeTab === 'blog' && (
+                                <BlogManager posts={myPosts} t={t} onRefresh={fetchUserData} profile={profile} user={user} lang={lang} />
                             )}
                             {activeTab === 'settings' && (
                                 <UserSettingsView profile={profile} t={t} />
@@ -279,48 +334,49 @@ const UserNavItem = ({ icon, label, active, onClick, badge }: any) => (
 );
 
 const UserOverview = ({ stats, profile, t }: any) => (
-    <div className="space-y-6 lg:space-y-10">
-        <div className="bg-white p-6 lg:p-10 rounded-3xl lg:rounded-[3rem] border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between overflow-hidden relative shadow-sm gap-6">
-            <div className="relative z-10">
-                <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] mb-4">{t.acc_status}</h2>
-                <div className="flex items-center gap-4">
-                    <div className={`text-3xl lg:text-4xl font-black uppercase tracking-tighter ${profile?.status === 'approved' ? 'text-green-600' : 'text-amber-500'}`}>
-                        {profile?.status || 'Pending'}
-                    </div>
-                    {profile?.status === 'approved' && (
-                        <span className="material-symbols-outlined text-green-600 text-3xl lg:text-4xl">verified</span>
-                    )}
-                </div>
-                <p className="text-sm text-slate-500 mt-4 max-w-md">
-                    {profile?.status === 'approved' ? t.verified : t.pending}
-                </p>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom duration-500">
+        <div className="bg-white p-8 lg:p-12 rounded-[2rem] lg:rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
+                <span className="material-symbols-outlined text-[12rem]">verified_user</span>
             </div>
-            <div className={`size-24 lg:size-32 rounded-full border-8 border-slate-50 flex items-center justify-center ${profile?.status === 'approved' ? 'bg-green-50' : 'bg-amber-50'}`}>
-                <span className={`material-symbols-outlined text-4xl lg:text-5xl ${profile?.status === 'approved' ? 'text-green-500' : 'text-amber-400'}`}>
-                    {profile?.status === 'approved' ? 'how_to_reg' : 'history'}
-                </span>
+            <div className="relative z-10">
+                <h3 className="text-xs lg:text-sm font-black uppercase text-slate-400 tracking-widest mb-4">{t.acc_status}</h3>
+                <div className="flex items-start gap-4 mb-4">
+                    <span className={`material-symbols-outlined ${profile?.status === 'approved' ? 'text-emerald-500' : 'text-amber-500'} text-3xl`}>
+                        {profile?.status === 'approved' ? 'verified' : 'pending_actions'}
+                    </span>
+                    <p className="max-w-xl text-slate-600 font-medium leading-relaxed">
+                        {profile?.status === 'approved' ? t.verified : t.pending}
+                    </p>
+                </div>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
-            <UserStatCard icon="inventory_2" label={t.submitted} value={stats.totalSubmissions} />
-            <UserStatCard icon="task_alt" label={t.approved} value={stats.approvedSubmissions} />
-            <UserStatCard icon="visibility" label={t.views} value={stats.totalViews} />
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-8">
+            <UserStatCard icon="file_upload" label={t.submitted} value={stats.totalSubmissions} color="bg-blue-500" />
+            <UserStatCard icon="verified" label={t.approved} value={stats.approvedSubmissions} color="bg-emerald-500" />
+            <UserStatCard icon="visibility" label={t.views} value={stats.totalViews} color="bg-slate-800" />
         </div>
     </div>
 );
 
-const UserStatCard = ({ icon, label, value }: any) => (
-    <div className="bg-white p-6 lg:p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-        <span className="material-symbols-outlined text-slate-400 mb-4 lg:mb-6">{icon}</span>
-        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">{label}</p>
-        <p className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter">{value}</p>
+const UserStatCard = ({ icon, label, value, color }: any) => (
+    <div className="bg-white p-6 lg:p-10 rounded-[2rem] lg:rounded-[3rem] border border-slate-200 shadow-sm">
+        <div className={`size-10 lg:size-12 ${color} rounded-2xl flex items-center justify-center text-white mb-6`}>
+            <span className="material-symbols-outlined text-xl lg:text-2xl">{icon}</span>
+        </div>
+        <div>
+            <p className="text-[10px] font-black uppercase text-slate-400 mb-1 lg:mb-2">{label}</p>
+            <p className="text-2xl lg:text-4xl font-black text-slate-900 tracking-tighter">{value}</p>
+        </div>
     </div>
 );
 
 const UserSubmissionsList = ({ saunas, lang, t, onEdit, onDelete }: any) => (
-    <div className="space-y-4">
-        {saunas.length > 0 ? saunas.map((s: Sauna) => {
+    <div className="grid grid-cols-1 gap-4">
+        {saunas.length === 0 ? (
+            <div className="py-20 text-center text-slate-300 font-black uppercase tracking-widest">{t.no_contrib}</div>
+        ) : saunas.map((s: Sauna) => {
             const m = (typeof s.media === 'string' ? JSON.parse(s.media) : s.media) || {};
             const images = Array.isArray(m.images) ? m.images : [];
             const displayImg = m.featured_image || images[0] || '';
@@ -328,50 +384,38 @@ const UserSubmissionsList = ({ saunas, lang, t, onEdit, onDelete }: any) => (
             const content = (typeof s.content === 'string' ? JSON.parse(s.content) : s.content)?.[lang] || { name: 'Archive Entry' };
 
             return (
-                <div key={s.id} className="bg-white p-4 lg:p-6 rounded-3xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between group hover:border-primary/20 transition-all gap-4">
-                    <div className="flex items-center gap-4 lg:gap-6">
-                        <div className="size-16 lg:size-20 rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
+                <div key={s.id} className="bg-white p-4 lg:p-6 rounded-[2rem] border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-6 group hover:shadow-xl hover:shadow-slate-200/50 transition-all">
+                    <div className="flex items-center gap-6 w-full">
+                        <div className="size-20 lg:size-24 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0">
                             <img src={resolveUrl(displayImg)} className="w-full h-full object-cover" onError={(e: any) => e.target.src = 'https://placehold.co/200x200/f1f5f9/94a3b8?text=?'} />
                         </div>
-                        <div>
-                            <h4 className="font-black text-slate-900 uppercase tracking-tight text-sm lg:text-base">{content.name}</h4>
-                            <div className="flex items-center gap-4 mt-1 lg:mt-2">
-                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${s.status === 'approved' ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>{s.status.replace('_', ' ')}</span>
-                                <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-sm">visibility</span>
-                                    {s.views || 0}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-1">
+                                <h4 className="font-black text-sm lg:text-base text-slate-900 uppercase truncate">{content.name}</h4>
+                                <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${s.status === 'approved' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                    {s.status}
                                 </span>
                             </div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Pending'}</p>
                         </div>
                     </div>
-                    <div className="flex items-center justify-between w-full sm:w-auto gap-4 lg:gap-6">
-                        <div className="text-right hidden md:block">
-                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">Archive ID</p>
-                            <p className="text-[10px] font-mono font-bold text-slate-500 uppercase">{s.sauna_id}</p>
-                        </div>
-                        <div className="flex gap-2 w-full sm:w-auto">
-                            <button
-                                onClick={() => onEdit(s)}
-                                className="flex-1 sm:flex-none h-10 lg:h-12 px-6 bg-slate-50 text-slate-900 rounded-xl lg:rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all border border-slate-100"
-                            >
-                                {t.edit}
-                            </button>
-                            <button
-                                onClick={() => onDelete(s.id)}
-                                className="h-10 lg:h-12 w-10 lg:w-12 flex items-center justify-center bg-rose-50 text-rose-500 rounded-xl lg:rounded-2xl hover:bg-rose-500 hover:text-white transition-all border border-rose-100"
-                                title="Delete Archive"
-                            >
-                                <span className="material-symbols-outlined text-sm">delete</span>
-                            </button>
-                        </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <button
+                            onClick={() => onEdit(s)}
+                            className="flex-1 sm:flex-none px-6 py-3 bg-slate-50 text-slate-900 rounded-xl text-[10px] font-black uppercase hover:bg-slate-100 transition-all"
+                        >
+                            {t.edit}
+                        </button>
+                        <button
+                            onClick={() => onDelete(s.id)}
+                            className="flex-shrink-0 size-11 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        >
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                        </button>
                     </div>
                 </div>
             );
-        }) : (
-            <div className="py-20 text-center bg-slate-50 border border-dashed border-slate-200 rounded-3xl text-slate-300">
-                <p className="text-xs font-black uppercase tracking-[0.2em]">{t.no_contrib}</p>
-            </div>
-        )}
+        })}
     </div>
 );
 

@@ -83,8 +83,8 @@ const HomePage = ({
             {/* Hero Section */}
             <section id="hero-section" className="relative h-screen flex items-center justify-center overflow-hidden">
                 <motion.div style={{ scale: videoScale }} className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-slate-900/40 z-10" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[var(--bg-main)] z-20" />
+                    <div className="absolute inset-0 bg-slate-900/20 z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--bg-main)] z-20" />
                     <video autoPlay muted loop playsInline className="w-full h-full object-cover grayscale-[20%] brightness-[90%] transition-all duration-1000">
                         <source src="/Hero.mp4" type="video/mp4" />
                     </video>
@@ -185,20 +185,20 @@ const HomePage = ({
                 <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
                     <FeatureCard
                         icon={<Compass className="size-6" />}
-                        title={lang === 'sv' ? 'Levande Historia' : 'Living History'}
-                        desc={lang === 'sv' ? 'Digitaliserar hundratals år av badtraditioner för den moderna eran.' : 'Digitizing centuries of bathing traditions for the modern era.'}
+                        title={lang === 'sv' ? 'Levande Historia' : lang === 'fi' ? 'Elävä Historia' : 'Living History'}
+                        desc={lang === 'sv' ? 'Digitaliserar hundratals år av badtraditioner för den moderna eran.' : lang === 'fi' ? 'Satojen vuosien kylpyperinteiden digitointi nykyaikaa varten.' : 'Digitizing centuries of bathing traditions for the modern era.'}
                         delay={0.1}
                     />
                     <FeatureCard
                         icon={<Shield className="size-6" />}
-                        title={lang === 'sv' ? 'Kulturarv' : 'Cultural Heritage'}
-                        desc={lang === 'sv' ? 'Backas av Erasmus+ för att främja gränsöverskridande samarbete.' : 'Backed by Erasmus+ to foster cross-border cultural collaboration.'}
+                        title={lang === 'sv' ? 'Kulturarv' : lang === 'fi' ? 'Kulttuuriperintö' : 'Cultural Heritage'}
+                        desc={lang === 'sv' ? 'Backas av Kulturfonden för Sverige och Finland för att främja gränsöverskridande samarbete.' : lang === 'fi' ? 'Suomalais-ruotsalaisen kulttuurirahaston tukema hanke rajatyylisen yhteistyön edistämiseksi.' : 'Backed by Kulturfonden för Sverige och Finland to foster cross-border cultural collaboration.'}
                         delay={0.2}
                     />
                     <FeatureCard
                         icon={<Wind className="size-6" />}
-                        title={lang === 'sv' ? 'Välmående' : 'Wellbeing'}
-                        desc={lang === 'sv' ? 'Upplev den hälsofrämjande magin bakom den nordiska bastun.' : 'Experience the health-promoting magic behind the Nordic sauna.'}
+                        title={lang === 'sv' ? 'Välmående' : lang === 'fi' ? 'Hyvinvointi' : 'Wellbeing'}
+                        desc={lang === 'sv' ? 'Upplev den hälsofrämjande magin bakom den nordiska bastun.' : lang === 'fi' ? 'Koe pohjoismaisen saunan terveyttä edistävä taika.' : 'Experience the health-promoting magic behind the Nordic sauna.'}
                         delay={0.3}
                     />
                 </div>

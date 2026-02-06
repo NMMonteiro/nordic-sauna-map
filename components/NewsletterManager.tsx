@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase, supabaseUrl, supabaseAnonKey } from '../supabaseClient';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import {
     Send,
@@ -27,7 +27,8 @@ import {
     Filter,
     BarChart3,
     ArrowLeft,
-    Upload
+    Upload,
+    ShieldCheck
 } from 'lucide-react';
 
 interface NewsletterManagerProps {
@@ -65,10 +66,26 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
     const [showFullLog, setShowFullLog] = useState(false);
     const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
     const [focusedField, setFocusedField] = useState<string | null>(null);
+    const [userRole, setUserRole] = useState<string | null>(null);
+    const [userEmail, setUserEmail] = useState<string | null>(null);
 
     useEffect(() => {
         fetchCounts();
+        fetchUserStatus();
     }, []);
+
+    const fetchUserStatus = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            setUserEmail(user.email || null);
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+            setUserRole(profile?.role || 'user');
+        }
+    };
 
     const fetchCounts = async () => {
         const { count: sCount } = await supabase.from('newsletter_subscribers').select('*', { count: 'exact', head: true }).eq('status', 'active');
@@ -86,7 +103,7 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
             if (error) throw error;
             setHistory(data || []);
         } catch (err: any) {
-            console.error('History fetch error:', err);
+            console.error('[CRITICAL] Newsletter History fetch error:', err);
         } finally {
             setLoadingHistory(false);
         }
@@ -97,9 +114,10 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
         setShowFullLog(false);
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            const clientConfig = (supabase as any);
-            const baseUrl = clientConfig.supabaseUrl;
-            const anonKey = clientConfig.supabaseKey;
+
+            // Use stable exported constants
+            const baseUrl = supabaseUrl;
+            const anonKey = supabaseAnonKey;
 
             if (!session?.access_token) {
                 throw new Error('AUTH ERROR: No active session. Please Log Out and Log In again.');
@@ -154,9 +172,8 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
         setTestSending(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            const clientConfig = (supabase as any);
-            const baseUrl = clientConfig.supabaseUrl;
-            const anonKey = clientConfig.supabaseKey;
+            const baseUrl = supabaseUrl;
+            const anonKey = supabaseAnonKey;
 
             if (!session?.access_token) {
                 throw new Error('AUTH ERROR: Session expired. Please Log Out and Log In again.');
@@ -183,7 +200,7 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || data.message || 'Test dispatch failed');
 
-            alert('Test email initiated! Please check your inbox.');
+            alert(`Test dispatch successful!\nRecipients: ${data.count}\nSuccess: ${data.successCount}\nFailures: ${data.failureCount}\n\nCheck your inbox at: ${testEmail}`);
         } catch (err: any) {
             console.error('Test send error:', err);
             alert('Test dispatch failed: ' + err.message);
@@ -333,7 +350,7 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
                         </div>
                         <div className="hidden lg:flex items-center gap-4 py-2 px-4 bg-slate-900/5 rounded-full border border-slate-900/5">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <Users className="size-3" /> Audience: <span className="text-slate-900">{audience === 'all' ? '2,450+' : audience === 'members' ? counts.members : counts.subscribers}</span>
+                                <Users className="size-3" /> Audience: <span className="text-slate-900">{audience === 'all' ? counts.subscribers + counts.members : audience === 'members' ? counts.members : counts.subscribers}</span>
                             </span>
                         </div>
                     </div>
@@ -443,7 +460,7 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
                                                         type="text"
                                                         maxLength={100}
                                                         placeholder="Share the heat..."
-                                                        className="w-full bg-transparent border-none px-8 py-6 text-xl font-bold outline-none placeholder:text-slate-300"
+                                                        className="w-full bg-transparent border-none px-8 py-6 text-xl font-bold outline-none text-slate-900 placeholder:text-slate-300"
                                                         value={subject}
                                                         onChange={(e) => setSubject(e.target.value)}
                                                     />
@@ -497,7 +514,7 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
                                                         onBlur={() => setFocusedField(null)}
                                                         rows={10}
                                                         placeholder="Every great sauna has a story..."
-                                                        className="w-full bg-transparent border-none px-10 py-10 text-slate-700 leading-relaxed font-medium outline-none resize-none placeholder:text-slate-300 scrollbar-hide"
+                                                        className="w-full bg-transparent border-none px-10 py-10 text-slate-900 leading-relaxed font-medium outline-none resize-none placeholder:text-slate-300 scrollbar-hide"
                                                         value={content}
                                                         onChange={(e) => setContent(e.target.value)}
                                                     />
@@ -547,7 +564,9 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
                                             <div className="bg-white p-8 rounded-[2rem] border border-slate-100 text-center shadow-xl shadow-slate-200/50">
                                                 <div className="size-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-4"><Mail className="size-6" /></div>
                                                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</h4>
-                                                <p className="text-3xl font-black text-primary uppercase italic">Ready</p>
+                                                <div className="flex items-center justify-center py-2">
+                                                    <p className="text-2xl font-black text-primary uppercase italic leading-none m-0">Ready</p>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -717,7 +736,7 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
                                                     />
                                                 </div>
 
-                                                <p className="text-[14px] text-slate-600 leading-relaxed font-medium whitespace-pre-wrap">{content || 'Narrative content will manifest here as you type...'}</p>
+                                                <p className="text-[14px] text-slate-900 leading-relaxed font-medium whitespace-pre-wrap">{content || 'Narrative content will manifest here as you type...'}</p>
 
                                                 <div className="mt-12 text-center">
                                                     <div className="inline-block px-10 py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest">Visit the Platform</div>
@@ -743,10 +762,18 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
                             <div className="space-y-2">
                                 <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase">Newsletter Archive</h1>
                                 <p className="text-slate-400 font-medium text-lg">Every newsletter sent across the Nordic network since inception.</p>
+
+                                {/* Hidden Diagnostics Utility */}
+                                <div className="pt-4 flex items-center gap-4 text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                                    <ShieldCheck className={`size-3 ${userRole === 'admin' ? 'text-green-500' : 'text-amber-500'}`} />
+                                    <span>Auth Context: <span className="text-slate-400">{userEmail || 'Unknown'}</span></span>
+                                    <span className="size-1 bg-slate-200 rounded-full" />
+                                    <span>Role: <span className={userRole === 'admin' ? 'text-green-500' : 'text-amber-500'}>{userRole || 'Verifying...'}</span></span>
+                                </div>
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="bg-slate-900/5 border border-slate-900/5 rounded-2xl p-2 flex">
-                                    <button onClick={fetchHistory} className={`p-4 bg-white text-primary rounded-[1.2rem] shadow-xl shadow-slate-200 transition-all ${loadingHistory ? 'animate-spin' : 'hover:scale-105 active:scale-95'}`}>
+                                    <button onClick={() => { fetchHistory(); fetchUserStatus(); }} className={`p-4 bg-white text-primary rounded-[1.2rem] shadow-xl shadow-slate-200 transition-all ${loadingHistory ? 'animate-spin' : 'hover:scale-105 active:scale-95'}`}>
                                         <Search className="size-5" />
                                     </button>
                                 </div>
@@ -768,6 +795,11 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
                                 </div>
                                 <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Vault is currently empty</h4>
                                 <p className="text-slate-400 font-medium">Initialize your first creative newsletter to populate the archive.</p>
+                                {userRole !== 'admin' && (
+                                    <p className="mt-4 text-[10px] font-black text-amber-500 uppercase tracking-[0.2em] bg-amber-50 px-4 py-2 rounded-xl inline-block">
+                                        Warning: Account lacks Admin role. RLS may be blocking history.
+                                    </p>
+                                )}
                             </motion.div>
                         ) : (
                             <div className="grid grid-cols-1 gap-6">
@@ -798,34 +830,32 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
                                         </div>
 
                                         <div className="flex gap-6 items-center">
-                                            <div className="flex gap-4">
-                                                <div className="text-center bg-[#fcfdfe] px-6 py-4 rounded-[1.8rem] border border-slate-100 min-w-[120px] shadow-sm">
-                                                    <p className="text-2xl font-black text-slate-900 leading-none mb-1">{h.success_count}</p>
-                                                    <p className="text-[10px] font-black uppercase text-slate-300 tracking-[0.2em]">Sent</p>
-                                                </div>
-                                                <div className="text-center bg-red-50/20 px-6 py-4 rounded-[1.8rem] border border-red-50 min-w-[120px] shadow-sm">
-                                                    <p className="text-2xl font-black text-red-500 leading-none mb-1">{h.failure_count}</p>
-                                                    <p className="text-[10px] font-black uppercase text-red-300 tracking-[0.2em]">Lost</p>
-                                                </div>
+                                            <div className="text-right hidden sm:block">
+                                                <p className="text-2xl font-black text-slate-900 leading-none">{h.success_count}</p>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Delivered</p>
                                             </div>
-
-                                            <motion.button
-                                                whileHover={{ scale: 1.1, rotate: 5 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={() => exportToCSV(h.id)}
-                                                className="size-16 bg-white border border-slate-100 rounded-[1.8rem] flex items-center justify-center text-slate-400 hover:bg-primary hover:text-white transition-all shadow-xl shadow-slate-200/50"
+                                            <button
+                                                onClick={() => {
+                                                    setResult({
+                                                        success: true,
+                                                        newsletterId: h.id,
+                                                        count: h.total_recipients,
+                                                        successCount: h.success_count,
+                                                        failureCount: h.failure_count,
+                                                        errors: []
+                                                    });
+                                                    setStep(4);
+                                                    setViewMode('composer');
+                                                }}
+                                                className="size-14 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-primary hover:text-white transition-all group/btn"
                                             >
-                                                <Download className="size-6" />
-                                            </motion.button>
+                                                <BarChart3 className="size-6 transition-transform group-hover/btn:scale-110" />
+                                            </button>
                                         </div>
                                     </motion.div>
                                 ))}
                             </div>
                         )}
-
-                        <div className="pt-20 pb-10 flex items-center justify-center opacity-20 filter grayscale">
-                            <div className="text-[12px] font-black tracking-tighter uppercase text-slate-900">Nordic<span className="text-primary italic">Sauna</span>Map</div>
-                        </div>
                     </div>
                 </div>
             )}
@@ -833,49 +863,55 @@ export const NewsletterManager: React.FC<NewsletterManagerProps> = ({ t, lang })
     );
 };
 
-const AudienceCard = ({ active, onClick, title, count, description, icon }: any) => (
+interface AudienceCardProps {
+    active: boolean;
+    onClick: () => void;
+    title: string;
+    count: number;
+    description: string;
+    icon: React.ReactNode;
+}
+
+const AudienceCard: React.FC<AudienceCardProps> = ({ active, onClick, title, count, description, icon }) => (
     <button
         onClick={onClick}
-        className={`p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] border-2 text-left transition-all duration-700 relative overflow-hidden group ${active ? 'border-primary bg-white shadow-[0_40px_100px_rgba(37,99,235,0.08)] scale-[1.02]' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+        className={`p-8 rounded-[2.5rem] border-2 text-left transition-all duration-700 relative overflow-hidden group ${active ? 'border-primary bg-white shadow-2xl shadow-primary/10' : 'border-slate-100 bg-white hover:border-slate-300'}`}
     >
+        <div className={`size-14 rounded-2xl flex items-center justify-center mb-6 transition-all duration-700 ${active ? 'bg-primary text-white scale-110 rotate-3' : 'bg-slate-50 text-slate-400 group-hover:scale-110'}`}>
+            {React.cloneElement(icon as React.ReactElement<any>, { className: 'size-6' })}
+        </div>
+        <h3 className={`text-[11px] font-black uppercase tracking-widest mb-1 ${active ? 'text-primary' : 'text-slate-400'}`}>{title}</h3>
+        <p className="text-3xl font-black text-slate-900 mb-3 tracking-tighter transition-transform group-hover:translate-x-1">{count.toLocaleString()}</p>
+        <p className="text-[12px] text-slate-400 font-medium leading-relaxed">{description}</p>
+
         {active && (
-            <motion.div
-                layoutId="audience-active-bg"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute top-0 right-0 size-40 bg-primary/5 -mr-16 -mt-16 rounded-full blur-3xl pointer-events-none"
-            />
+            <motion.div layoutId="active-indicator" className="absolute top-6 right-6">
+                <div className="size-3 bg-primary rounded-full animate-pulse" />
+            </motion.div>
         )}
-        <div className={`size-12 rounded-[1.2rem] flex items-center justify-center mb-6 transition-all duration-700 ${active ? 'bg-primary text-white shadow-xl shadow-primary/30 rotate-12' : 'bg-slate-50 text-slate-400 group-hover:rotate-6'}`}>
-            {React.cloneElement(icon, { size: 24 })}
-        </div>
-        <div className="space-y-2 relative z-10">
-            <h4 className={`text-[11px] font-black uppercase tracking-[0.2em] mb-1 ${active ? 'text-primary' : 'text-slate-400'}`}>{title}</h4>
-            <div className="flex items-baseline gap-2">
-                <span className={`text-4xl font-black tracking-tighter ${active ? 'text-slate-900' : 'text-slate-400'}`}>{count}</span>
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Nodes</span>
-            </div>
-            <p className={`text-[10px] font-medium leading-relaxed max-w-[200px] ${active ? 'text-slate-500' : 'text-slate-300'}`}>{description}</p>
-        </div>
     </button>
 );
 
-const TemplateCard = ({ active, onClick, template }: any) => (
+interface TemplateCardProps {
+    active: boolean;
+    onClick: () => void;
+    template: any;
+}
+
+const TemplateCard: React.FC<TemplateCardProps> = ({ active, onClick, template }) => (
     <button
         onClick={onClick}
-        className={`p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] border-2 text-left transition-all duration-700 relative group overflow-hidden ${active ? 'border-primary bg-white shadow-2xl' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+        className={`group flex items-center gap-6 p-6 rounded-[2.5rem] border-2 transition-all duration-700 ${active ? 'border-primary bg-white shadow-2xl shadow-primary/10 scale-[1.02]' : 'border-slate-100 bg-white hover:border-slate-300'}`}
     >
-        <div className="aspect-[16/10] rounded-[1.8rem] overflow-hidden mb-6 relative border-4 border-white shadow-xl transition-all duration-700 group-hover:scale-105">
-            <img src={template.preview} className={`w-full h-full object-cover transition-all duration-700 ${active ? 'grayscale-0' : 'grayscale'}`} />
-            {active && (
-                <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center">
-                    <CheckCircle2 className="size-12 text-white drop-shadow-2xl" />
-                </div>
-            )}
+        <div className="size-24 rounded-3xl overflow-hidden shrink-0 shadow-lg group-hover:rotate-3 transition-transform duration-700">
+            <img src={template.preview} className="w-full h-full object-cover" />
         </div>
-        <div className="space-y-2">
-            <h4 className={`text-xl font-black uppercase tracking-tighter ${active ? 'text-slate-900' : 'text-slate-400'}`}>{template.name}</h4>
-            <p className={`text-[10px] font-medium ${active ? 'text-slate-500' : 'text-slate-300'}`}>{template.description}</p>
+        <div className="text-left">
+            <h4 className={`text-sm font-bold uppercase tracking-tight mb-1 ${active ? 'text-primary' : 'text-slate-900'}`}>{template.name}</h4>
+            <p className="text-[11px] text-slate-400 font-medium leading-normal">{template.description}</p>
+        </div>
+        <div className={`ml-auto size-6 rounded-full border-2 flex items-center justify-center transition-all ${active ? 'border-primary bg-primary text-white' : 'border-slate-200'}`}>
+            {active && <CheckCircle2 className="size-3" />}
         </div>
     </button>
 );

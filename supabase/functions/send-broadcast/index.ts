@@ -112,6 +112,8 @@ serve(async (req) => {
             let error_message = null
 
             try {
+                if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY is not configured in Supabase Secrets.');
+
                 const unsubscribeUrl = `${SITE_URL}/unsubscribe?email=${encodeURIComponent(recipient.email)}&id=${recipient.id}`
                 const html = generateEmailHtml(templateId, subject, content, imageUrl, lang, unsubscribeUrl)
 
@@ -209,15 +211,15 @@ function generateEmailHtml(templateId: string, subject: string, content: string,
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-            body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #1e293b; margin: 0; padding: 0; background-color: #f8fafc; }
+            body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #020617; margin: 0; padding: 0; background-color: #f8fafc; }
             .wrapper { width: 100%; max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: ${isModern ? '32px' : '0'}; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05); }
             .header { background: #0f172a; padding: 60px 48px; text-align: ${isModern ? 'left' : 'center'}; color: white; }
             .content { padding: 48px; }
             .footer { padding: 48px; text-align: center; font-size: 11px; color: #94a3b8; background: #f8fafc; text-transform: uppercase; letter-spacing: 0.1em; }
             .logo-text { font-weight: 900; letter-spacing: -0.05em; text-transform: uppercase; font-size: 20px; color: #ffffff; }
             .accent { color: #3b82f6; } /* Using primary blue instead of orange */
-            h1 { font-size: ${isModern ? '42px' : '32px'}; font-weight: 900; margin-bottom: 24px; letter-spacing: -0.04em; color: #0f172a; line-height: 1.1; text-align: ${isModern ? 'left' : 'center'}; }
-            p { margin-bottom: 24px; font-size: 16px; color: #475569; white-space: pre-wrap; }
+            h1 { font-size: ${isModern ? '42px' : '32px'}; font-weight: 900; margin-bottom: 24px; letter-spacing: -0.04em; color: #020617; line-height: 1.1; text-align: ${isModern ? 'left' : 'center'}; }
+            p { margin-bottom: 24px; font-size: 16px; color: #0f172a; white-space: pre-wrap; }
             .button { display: inline-block; padding: 20px 40px; background-color: #0f172a; color: white !important; text-decoration: none; border-radius: 14px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.1em; }
         </style>
     </head>

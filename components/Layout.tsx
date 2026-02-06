@@ -178,7 +178,7 @@ export const Layout = ({
             </nav>
 
 
-            <Newsletter lang={lang} />
+            {location.pathname !== '/unsubscribe' && <Newsletter lang={lang} />}
             <Footer lang={lang} />
             <CookieBanner lang={lang} />
         </div>

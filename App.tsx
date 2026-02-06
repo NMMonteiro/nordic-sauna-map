@@ -83,8 +83,8 @@ const HomePage = ({
             {/* Hero Section */}
             <section id="hero-section" className="relative h-screen flex items-center justify-center overflow-hidden">
                 <motion.div style={{ scale: videoScale }} className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-slate-900/20 z-10" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--bg-main)] z-20" />
+                    <div className="absolute inset-0 bg-slate-900/[0.05] z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-90% via-transparent to-[var(--bg-main)] z-20" />
                     <video autoPlay muted loop playsInline className="w-full h-full object-cover grayscale-[20%] brightness-[90%] transition-all duration-1000">
                         <source src="/Hero.mp4" type="video/mp4" />
                     </video>

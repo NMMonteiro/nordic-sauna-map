@@ -60,6 +60,7 @@ export interface Profile {
   role: UserRole;
   status: UserStatus;
   full_name?: string;
+  metadata?: any;
 }
 
 export interface Sauna {

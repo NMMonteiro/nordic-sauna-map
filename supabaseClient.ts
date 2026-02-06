@@ -1,12 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Hardcoded for absolute reliability to break the cycle of environment errors
+const supabaseUrl = 'https://hgpcpontdxjsbqsjiech.supabase.co';
+export const supabaseAnonKey = 'sb_publishable_2FsR0yjkb0MFJIQGSrmYBw_NoVaFlJN';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('CRITICAL: Supabase URL or Anon Key is missing in environment variables!');
-} else {
-    console.log('Supabase client initialized with URL:', supabaseUrl);
-}
+console.log('Supabase client hard-initialized for project: hgpcpontdxjsbqsjiech');
 
-export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder');
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -4,6 +4,7 @@ import { Profile, Sauna } from '../types';
 import { EditArchiveModal } from './EditArchiveModal';
 import { EducationManager } from './EducationManager';
 import { BlogManager } from './BlogManager';
+import { NewsletterManager } from './NewsletterManager';
 import { User } from '@supabase/supabase-js';
 
 interface AdminPanelProps {
@@ -14,7 +15,7 @@ interface AdminPanelProps {
     user?: User | null;
 }
 
-type AdminTab = 'dashboard' | 'users' | 'moderation' | 'archives' | 'education' | 'blog_moderation' | 'user_detail';
+type AdminTab = 'dashboard' | 'users' | 'moderation' | 'archives' | 'education' | 'blog_moderation' | 'user_detail' | 'newsletter';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate, profile, user }) => {
     const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
@@ -38,6 +39,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
     const [materials, setMaterials] = useState<any[]>([]);
     const [pendingPosts, setPendingPosts] = useState<any[]>([]);
     const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending_approval' | 'rejected'>('all');
+    const [searchTermAdmin, setSearchTermAdmin] = useState('');
 
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
 
@@ -70,7 +72,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
             pending: 'Pending',
             rejected: 'Rejected',
             education: 'Pedagogical',
-            blog: 'Story Entries'
+            blog: 'Story Entries',
+            newsletter: 'Newsletter'
         },
         sv: {
             dashboard: 'Översikt',
@@ -100,7 +103,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
             pending: 'Väntande',
             rejected: 'Nekade',
             education: 'Pedagogiskt',
-            blog: 'Stories-moderering'
+            blog: 'Stories-moderering',
+            newsletter: 'Nyhetsbrev'
         },
         fi: {
             dashboard: 'Hallintapaneeli',
@@ -130,7 +134,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
             pending: 'Odottaa',
             rejected: 'Hylätyt',
             education: 'Pedagoginen',
-            blog: 'Tarinoiden moderointi'
+            blog: 'Tarinoiden moderointi',
+            newsletter: 'Uutiskirje'
         }
     }[lang];
 
@@ -148,9 +153,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
             const { count: asCount } = await supabase.from('saunas').select('*', { count: 'exact', head: true }).eq('status', 'approved');
             const { count: mCount } = await supabase.from('learning_materials').select('*', { count: 'exact', head: true });
             const { count: ppCount } = await supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'pending_approval');
-            const { data: vData } = await supabase.from('saunas').select('views');
+            const { data: vData, error: vError } = await supabase.from('saunas').select('views');
+            if (vError) console.warn('Note: Sauna views column not yet available in database.');
 
-            const totalViews = vData?.reduce((acc, curr) => acc + (curr.views || 0), 0) || 0;
+            const totalViews = (!vError && vData) ? vData.reduce((acc, curr) => acc + (curr.views || 0), 0) : 0;
 
             setStats({
                 totalUsers: uCount || 0,
@@ -168,14 +174,58 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
                 if (data) setProfiles(data as Profile[]);
             } else if (activeTab === 'moderation') {
                 const { data } = await supabase.from('saunas').select('*').eq('status', 'pending_approval').order('created_at', { ascending: false });
-                if (data) setSaunas(data as Sauna[]);
+                if (data) {
+                    const normalized = data.map(s => {
+                        const metadata = typeof s.metadata === 'string' ? JSON.parse(s.metadata) : (s.metadata || {});
+                        const coordinates = typeof s.coordinates === 'string' ? JSON.parse(s.coordinates) : (s.coordinates || {});
+                        const content = typeof s.content === 'string' ? JSON.parse(s.content) : (s.content || {});
+
+                        let rawCountry = metadata?.country || s.country || 'Finland';
+                        if (typeof rawCountry === 'string' && rawCountry) {
+                            rawCountry = rawCountry.charAt(0).toUpperCase() + rawCountry.slice(1).toLowerCase();
+                        } else {
+                            rawCountry = 'Finland';
+                        }
+
+                        return {
+                            ...s,
+                            metadata,
+                            coordinates,
+                            content,
+                            country: rawCountry
+                        };
+                    });
+                    setSaunas(normalized as Sauna[]);
+                }
             } else if (activeTab === 'archives') {
                 let query = supabase.from('saunas').select('*').order('created_at', { ascending: false });
                 if (statusFilter !== 'all') {
                     query = query.eq('status', statusFilter);
                 }
                 const { data } = await query;
-                if (data) setSaunas(data as Sauna[]);
+                if (data) {
+                    const normalized = data.map(s => {
+                        const metadata = typeof s.metadata === 'string' ? JSON.parse(s.metadata) : (s.metadata || {});
+                        const coordinates = typeof s.coordinates === 'string' ? JSON.parse(s.coordinates) : (s.coordinates || {});
+                        const content = typeof s.content === 'string' ? JSON.parse(s.content) : (s.content || {});
+
+                        let rawCountry = metadata?.country || s.country || 'Finland';
+                        if (typeof rawCountry === 'string' && rawCountry) {
+                            rawCountry = rawCountry.charAt(0).toUpperCase() + rawCountry.slice(1).toLowerCase();
+                        } else {
+                            rawCountry = 'Finland';
+                        }
+
+                        return {
+                            ...s,
+                            metadata,
+                            coordinates,
+                            content,
+                            country: rawCountry
+                        };
+                    });
+                    setSaunas(normalized as Sauna[]);
+                }
             } else if (activeTab === 'education') {
                 const { data } = await supabase.from('learning_materials').select('*').order('created_at', { ascending: false });
                 if (data) setMaterials(data);
@@ -295,8 +345,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
                             <NavItem
                                 icon="group" label={lang === 'sv' ? 'Medlemmar' : lang === 'fi' ? 'Jäsenet' : 'Members'}
                                 active={activeTab === 'users' || activeTab === 'user_detail'}
-                                badge={stats.pendingUsers > 0 ? stats.pendingUsers : undefined}
                                 onClick={() => { setActiveTab('users'); setSidebarOpen(false); }}
+                            />
+                            <NavItem
+                                icon="outgoing_mail" label={t.newsletter}
+                                active={activeTab === 'newsletter'}
+                                onClick={() => { setActiveTab('newsletter'); setSidebarOpen(false); }}
                             />
                         </div>
                     </div>
@@ -387,25 +441,64 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
                                 />
                             )}
                             {activeTab === 'moderation' && (
-                                <ModerationView saunas={saunas} lang={lang} t={t} onApprove={handleSaunaStatus} onReject={handleSaunaStatus} onDelete={deleteSauna} />
+                                <div className="space-y-6">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <h2 className="text-xl font-black text-slate-900 uppercase">{t.moderation}</h2>
+                                        <div className="relative flex-1 max-w-md">
+                                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                                            <input
+                                                type="text"
+                                                placeholder="Search submissions..."
+                                                className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+                                                value={searchTermAdmin}
+                                                onChange={(e) => setSearchTermAdmin(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <ModerationView
+                                        saunas={saunas.filter(s => {
+                                            const content = (typeof s.content === 'string' ? JSON.parse(s.content) : s.content)?.[lang] || { name: '' };
+                                            return content.name.toLowerCase().includes(searchTermAdmin.toLowerCase());
+                                        })}
+                                        lang={lang} t={t} onApprove={handleSaunaStatus} onReject={handleSaunaStatus} onDelete={deleteSauna}
+                                    />
+                                </div>
                             )}
                             {activeTab === 'archives' && (
                                 <div className="space-y-6">
-                                    <div className="flex items-center justify-between">
-                                        <h2 className="text-xl font-black text-slate-900 uppercase">{t.archives}</h2>
-                                        <div className="flex bg-slate-100 p-1 rounded-xl">
-                                            {(['all', 'approved', 'pending_approval', 'rejected'] as const).map(f => (
-                                                <button
-                                                    key={f}
-                                                    onClick={() => setStatusFilter(f)}
-                                                    className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${statusFilter === f ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
-                                                >
-                                                    {t[f === 'pending_approval' ? 'pending' : f]}
-                                                </button>
-                                            ))}
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                        <div className="flex items-center gap-6">
+                                            <h2 className="text-xl font-black text-slate-900 uppercase">{t.archives}</h2>
+                                            <div className="flex bg-slate-100 p-1 rounded-xl">
+                                                {(['all', 'approved', 'pending_approval', 'rejected'] as const).map(f => (
+                                                    <button
+                                                        key={f}
+                                                        onClick={() => setStatusFilter(f)}
+                                                        className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${statusFilter === f ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                                                    >
+                                                        {t[f === 'pending_approval' ? 'pending' : f]}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="relative flex-1 max-w-md">
+                                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                                            <input
+                                                type="text"
+                                                placeholder="Search map entries..."
+                                                className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+                                                value={searchTermAdmin}
+                                                onChange={(e) => setSearchTermAdmin(e.target.value)}
+                                            />
                                         </div>
                                     </div>
-                                    <ArchiveListView saunas={saunas} lang={lang} t={t} onEdit={setEditingSauna} onDelete={deleteSauna} />
+                                    <ArchiveListView
+                                        saunas={saunas.filter(s => {
+                                            const content = (typeof s.content === 'string' ? JSON.parse(s.content) : s.content)?.[lang] || { name: '' };
+                                            return content.name.toLowerCase().includes(searchTermAdmin.toLowerCase());
+                                        })}
+                                        lang={lang} t={t} onEdit={setEditingSauna} onDelete={deleteSauna}
+                                    />
                                 </div>
                             )}
                             {activeTab === 'education' && (
@@ -413,6 +506,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
                             )}
                             {activeTab === 'blog_moderation' && user && (
                                 <BlogManager posts={pendingPosts} t={t} onRefresh={fetchData} profile={profile} user={user} lang={lang} />
+                            )}
+                            {activeTab === 'newsletter' && (
+                                <NewsletterManager t={t} lang={lang} />
                             )}
                             {activeTab === 'user_detail' && selectedUser && (
                                 <UserDetailView user={selectedUser} saunas={userSaunas} lang={lang} t={t} onBack={() => setActiveTab('users')} onApprove={handleSaunaStatus} onEdit={setEditingSauna} onDelete={deleteSauna} />

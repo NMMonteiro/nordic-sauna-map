@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { User } from '@supabase/supabase-js';
 import { LocationPicker } from './LocationPicker';
+import { cn } from '../lib/utils';
 
 interface ContributionFormProps {
     onClose: () => void;
@@ -21,6 +22,7 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
         lat: 64.0,
         lng: 26.0,
         images: [''],
+        featuredImageIndex: 0,
         audio: [{ title: '', url: '', speaker: '' }],
         video: [{ title: '', url: '' }]
     });
@@ -101,6 +103,7 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
                 en: { name: formData.name, description: formData.story, etiquette: '' }
             },
             media: {
+                featured_image: formData.images[formData.featuredImageIndex] || formData.images[0],
                 images: formData.images.filter(i => i && i.trim() !== ''),
                 audio_interviews: formData.audio.filter(a => a.url && a.url.trim() !== '').map(a => ({
                     ...a,
@@ -140,7 +143,7 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
 
     return (
         <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose}></div>
+            <div className="absolute inset-0 bg-slate-950/75" onClick={onClose}></div>
 
             <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
                 <div className="p-6 md:p-10">
@@ -223,6 +226,28 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
                         <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                             <div className="space-y-4">
                                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Pinpoint Location</label>
+
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black uppercase text-primary/60 ml-1">Quick Paste (from Google Maps)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Paste e.g. 37.1568, -8.5262"
+                                        className="w-full bg-slate-50 border-2 border-dashed border-primary/20 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary outline-none text-sm font-mono"
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const coords = val.split(',').map(v => v.trim());
+                                            if (coords.length === 2) {
+                                                const lat = parseFloat(coords[0]);
+                                                const lng = parseFloat(coords[1]);
+                                                if (!isNaN(lat) && !isNaN(lng)) {
+                                                    setFormData({ ...formData, lat, lng });
+                                                }
+                                            }
+                                        }}
+                                    />
+                                    <p className="text-[9px] text-slate-400 px-2 italic">Tip: Right-click a place on Google Maps to copy coordinates.</p>
+                                </div>
+
                                 <LocationPicker
                                     initialLocation={[formData.lat, formData.lng]}
                                     onLocationSelect={(lat, lng) => setFormData({ ...formData, lat, lng })}
@@ -265,27 +290,45 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Archive Media (Upload or Link)</label>
                                     <div className="space-y-4">
                                         {formData.images.map((img, idx) => (
-                                            <div key={idx} className="space-y-2">
-                                                <div className="flex gap-2">
+                                            <div key={idx} className={cn(
+                                                "p-4 rounded-2xl border transition-all",
+                                                formData.featuredImageIndex === idx ? "bg-primary/5 border-primary shadow-lg shadow-primary/5" : "bg-white border-slate-100"
+                                            )}>
+                                                <div className="flex gap-2 mb-3">
                                                     <input
-                                                        className="flex-1 bg-slate-50 rounded-xl px-4 py-3 text-sm border-none focus:ring-2 focus:ring-primary"
+                                                        className="flex-1 bg-slate-100 rounded-xl px-4 py-3 text-sm border-none focus:ring-2 focus:ring-primary font-bold"
                                                         placeholder="Image URL..."
                                                         value={img}
                                                         onChange={(e) => updateImageField(idx, e.target.value)}
                                                     />
-                                                    <label className="size-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors">
+                                                    <label className="size-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors shadow-sm">
                                                         <span className="material-symbols-outlined text-slate-400">upload_file</span>
                                                         <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'image', idx)} />
                                                     </label>
                                                 </div>
-                                                {img && (
-                                                    <div className="size-20 rounded-xl overflow-hidden border border-slate-100">
-                                                        <img src={img} className="w-full h-full object-cover" />
-                                                    </div>
-                                                )}
+                                                <div className="flex items-center justify-between">
+                                                    {img ? (
+                                                        <div className="size-20 rounded-xl overflow-hidden border border-slate-200">
+                                                            <img src={img} className="w-full h-full object-cover" />
+                                                        </div>
+                                                    ) : <div className="size-20 bg-slate-50 rounded-xl border border-dashed border-slate-200" />}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData({ ...formData, featuredImageIndex: idx })}
+                                                        className={cn(
+                                                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                            formData.featuredImageIndex === idx
+                                                                ? "bg-primary text-white shadow-lg shadow-primary/30"
+                                                                : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                                                        )}
+                                                    >
+                                                        {formData.featuredImageIndex === idx ? '★ Featured Image' : 'Set as Featured'}
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
-                                        <button type="button" onClick={addImageField} className="text-[10px] font-black uppercase text-primary tracking-widest hover:underline">+ Add more images</button>
+                                        <button type="button" onClick={addImageField} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all">+ Add more images</button>
                                     </div>
                                 </div>
 

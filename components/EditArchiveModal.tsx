@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Sauna, AudioTrack, VideoClip } from '../types';
 import { LocationPicker } from './LocationPicker';
+import { cn } from '../lib/utils';
 
 interface EditArchiveModalProps {
     sauna: Sauna;
@@ -95,7 +96,7 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
 
     return (
         <div className="fixed inset-0 z-[30000] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xl" onClick={onClose}></div>
+            <div className="absolute inset-0 bg-slate-950/85" onClick={onClose}></div>
 
             <div className="relative w-full max-w-4xl bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-500 font-display">
                 {/* Header */}
@@ -213,32 +214,58 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
                                 <h3 className="text-xs font-black uppercase text-slate-900 tracking-widest pl-2">Photographic Archive</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {(editedData.media.images || []).map((img, idx) => (
-                                        <div key={idx} className="bg-slate-50 p-4 rounded-3xl border border-slate-100 space-y-3">
+                                        <div key={idx} className={cn(
+                                            "bg-slate-50 p-4 rounded-3xl border transition-all",
+                                            editedData.media.featured_image === img ? "border-primary shadow-lg shadow-primary/10 ring-2 ring-primary/20" : "border-slate-100"
+                                        )}>
                                             <div className="aspect-video bg-white rounded-2xl overflow-hidden border border-slate-200 relative group">
                                                 <img src={img} className="w-full h-full object-cover" onError={(e: any) => e.target.src = 'https://placehold.co/600x400/f1f5f9/94a3b8?text=Invalid+Image+URL'} />
-                                                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2">
-                                                    <label className="bg-white text-slate-900 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-xl hover:scale-105 transition-all">
-                                                        Replace
-                                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'image', idx)} />
-                                                    </label>
+                                                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-2">
+                                                    <div className="flex gap-2">
+                                                        <label className="bg-white text-slate-900 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-xl hover:scale-105 transition-all">
+                                                            Replace
+                                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'image', idx)} />
+                                                        </label>
+                                                        <button
+                                                            onClick={() => {
+                                                                const next = editedData.media.images.filter((_, i) => i !== idx);
+                                                                setEditedData({ ...editedData, media: { ...editedData.media, images: next } });
+                                                            }}
+                                                            className="bg-red-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all"
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    </div>
                                                     <button
-                                                        onClick={() => {
-                                                            const next = editedData.media.images.filter((_, i) => i !== idx);
-                                                            setEditedData({ ...editedData, media: { ...editedData.media, images: next } });
-                                                        }}
-                                                        className="bg-red-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all"
+                                                        onClick={() => setEditedData({ ...editedData, media: { ...editedData.media, featured_image: img } })}
+                                                        className={cn(
+                                                            "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all",
+                                                            editedData.media.featured_image === img
+                                                                ? "bg-primary text-white"
+                                                                : "bg-white text-slate-900"
+                                                        )}
                                                     >
-                                                        Remove
+                                                        {editedData.media.featured_image === img ? '★ Featured' : 'Set Featured'}
                                                     </button>
                                                 </div>
+                                                {editedData.media.featured_image === img && (
+                                                    <div className="absolute top-3 left-3 bg-primary text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] shadow-lg">
+                                                        Featured
+                                                    </div>
+                                                )}
                                             </div>
                                             <input
-                                                className="w-full bg-white border-none rounded-xl px-4 py-2 text-[10px] font-bold text-slate-500 shadow-sm"
+                                                className="w-full bg-white border-none rounded-xl px-4 py-2 text-[10px] font-bold text-slate-500 shadow-sm mt-3"
                                                 value={img}
                                                 onChange={(e) => {
-                                                    const next = [...editedData.media.images];
-                                                    next[idx] = e.target.value;
-                                                    setEditedData({ ...editedData, media: { ...editedData.media, images: next } });
+                                                    const nextImages = [...editedData.media.images];
+                                                    nextImages[idx] = e.target.value;
+                                                    const nextMedia = { ...editedData.media, images: nextImages };
+                                                    // If we're editing the URL of the image that was featured, update the featured_image URL too
+                                                    if (editedData.media.featured_image === img) {
+                                                        nextMedia.featured_image = e.target.value;
+                                                    }
+                                                    setEditedData({ ...editedData, media: nextMedia });
                                                 }}
                                             />
                                         </div>
@@ -393,7 +420,7 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
                     {uploading && (
                         <div className="flex items-center gap-2 px-6 py-4 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest rounded-2xl animate-pulse">
                             <span className="material-symbols-outlined animate-spin text-sm">sync</span>
-                            Broadcasting to Storage...
+                            Uploading to Storage...
                         </div>
                     )}
                     <div className="flex-1"></div>

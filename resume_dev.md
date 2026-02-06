@@ -1,35 +1,55 @@
-# Nordic Sauna Map - Development Status & Progress
+#  sauna-map Development Status - Feb 5, 2026
 
-## 🗓️ Session Recap: February 4, 2026 (Mid-Morning Update)
-
-We have successfully transitioned the application from a Single Page App (SPA) to a scalable Multi-Page Architecture, enabling rich content expansion and better UX for the heritage archive.
-
-### ✅ Key Achievements
-
-#### 1. Navigation & Routing Overhaul
-- **Multi-Page Framework**: Integrated `react-router-dom` and established a formal routing system.
-- **Header Component**: Extracted and enhanced the navigation header with support for "Discovery" and "About" hubs. Added fully localized Swedish/Finnish/English labels for all nav items.
-- **Layout System**: Implemented a `Layout` wrapper that ensures consistent branding across all future sub-pages.
-- **Page Shells**: Created functional placeholder routes for `Gallery`, `Blog`, `News`, `Lesson Plans`, and `Partners`, ready for content population.
-
-#### 2. Localized Navigation
-- **Complete Translations**: Every navigation element now respects the global language state, ensuring a seamless experience for Nordic visitors.
-- **Glassmorphism Header**: Refined the sticky header with `backdrop-blur` for a premium, lightweight feel.
-
-### 📍 Current Stand vs. Plan
-
-| Feature | Status | Notes |
-| :--- | :--- | :--- |
-| **Interactive Map** | ✅ Complete | Dynamic clustering and filtering active. |
-| **Mobile UX** | ✅ Complete | Command center menu and responsive layout fixed. |
-| **Routing System** | ✅ Complete | Multi-page architecture ready for expansion. |
-| **Sub-pages** | 👷 In Progress | Shells created; content needs to be populated. |
-| **Footer & Links** | ✅ Complete | Social media and funding disclaimer integrated. |
-
-### 🚀 Next Steps
-1. **Gallery Content**: Build out the `The Sauna Gallery` with high-quality archival photography.
-2. **Blog/News Engine**: Implement a system to display posts (could be Supabase-driven or static).
-3. **Partners View**: Populate the `Partners` page with detailed information about funding bodies and organizations.
+## 🚀 Objective: Newsletter & Broadcast Tool
+The primary goal was to implement a professional newsletter dispatch tool for administrators to communicate with subscribers and members.
 
 ---
-*Updated by Antigravity on Feb 4, 2026*
+
+## ✅ Completed Tasks
+1.  **Newsletter Manager Component**:
+    *   Created `components/NewsletterManager.tsx`.
+    *   Implemented multi-step workflow: Audience Selection -> Template Selection -> Content Composition -> Preview -> Send.
+    *   Added **Live Mobile Preview** with real-time content updates.
+2.  **Visual Composer Upgrade**:
+    *   Implemented **Image Upload CRUD**: Admins can upload, replace, or delete feature images.
+    *   Assets are hosted on Supabase Storage (`blog-media` bucket).
+    *   Template logic handles both 'Classic Heritage' and 'Nordic Minimal' layouts.
+3.  **GDPR & Unsubscribe Logic**:
+    *   Updated `pages/UnsubscribePage.tsx` to handle cross-table unsubscription (dedicated list + registered profiles).
+    *   Mandatory unsubscribe links included in all broadcasts.
+4.  **Backend Logic & Deployment**:
+    *   **Successfully Deployed** `send-broadcast` and `notify` Edge Functions.
+    *   **Version Pinning**: Fixed bundling issues by pinning `@supabase/supabase-js@2.47.10`.
+    *   Configured Supabase Secrets (`RESEND_API_KEY`, `ADMIN_EMAIL`, `SITE_URL`) on the remote project.
+5.  **Admin Panel Integration**:
+    *   New "Newsletter" tab added to `AdminPanel.tsx` with translations for EN, SV, FI.
+
+6.  **Detailed Reporting & Test Mode**:
+    *   Implemented detailed success/failure tracking for each recipient.
+    *   Added **"Test Dispatch"** button to allow sending to a specific email before a global blast.
+    *   Errors from Resend (e.g., unverified domains) are now captured and displayed in the Admin UI.
+
+---
+
+## 🛠️ Current Status & Issues
+*   **Resolved "Not Received" Issue**: Diagnostic checks showed that `nuno@tropicalastral.com` was neither in the `profiles` table nor the `newsletter_subscribers` list, which is why the broadcast didn't reach it.
+*   **Domain Verification**: Ensure `nordicsaunamap.com` is verified in your Resend dashboard; otherwise, global blasts to non-admin emails may be restricted.
+
+---
+
+## 📋 Immediate Next Steps
+
+1.  **Run a Test Dispatch**:
+    Go to Admin > Broadcast, click the new **"Test"** button, and send a message to your active email. Check the report for any Resend API errors.
+2.  **Verify Subscriber List**:
+    Ensure your desired testing emails are either registered in the app or added via the newsletter signup form on the landing page.
+3.  **Check Domain Status**:
+    Confirm domain verification in [Resend](https://resend.com/domains) to enable sending from `broadcast@nordicsaunamap.com`.
+
+---
+
+## 🔐 Configuration Summary
+*   **Supabase Project**: `hgpcpontdxjsbqsjiech`
+*   **Resend Integration**: Connected via Service Secrets.
+*   **Storage**: `blog-media` bucket used for newsletter assets.
+

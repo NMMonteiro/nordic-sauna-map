@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'banned'
     full_name TEXT,
     avatar_url TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
     last_login TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -167,20 +168,25 @@ CREATE POLICY "Owners Blog Delete" ON storage.objects FOR DELETE USING (bucket_i
 -- This function will call a Supabase Edge Function to send emails
 CREATE OR REPLACE FUNCTION public.notify_on_change()
 RETURNS trigger AS $$
+DECLARE
+  project_url TEXT := 'https://hgpcpontdxjsbqsjiech.supabase.co';
+  -- We'll use a safer way to pass the auth header if possible, or use a vault secret
+  -- For now, we will use the net.http_post directly with the known URL
 BEGIN
-  -- We use pg_net extension to call the edge function asynchronously
-  -- The function should be deployed to /functions/v1/notify
   PERFORM
     net.http_post(
-      url := concat(current_setting('app.settings.supabase_url'), '/functions/v1/notify'),
+      url := concat(project_url, '/functions/v1/notify'),
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
-        'Authorization', concat('Bearer ', current_setting('app.settings.service_role_key'))
+        -- This requires the service role key. Since we can't set DB params, 
+        -- the most reliable way in a trigger is to pass it or have the function 
+        -- check for a custom header that only the DB knows.
+        'Authorization', concat('Bearer ', 'REPLACE_WITH_YOUR_ACTUAL_SERVICE_ROLE_KEY')
       ),
       body := jsonb_build_object(
         'table', TG_TABLE_NAME,
         'record', row_to_json(NEW),
-        'old_record', row_to_json(OLD),
+        'old_record', CASE WHEN TG_OP = 'UPDATE' THEN row_to_json(OLD) ELSE NULL END,
         'operation', TG_OP
       )
     );
@@ -198,4 +204,28 @@ FOR EACH ROW EXECUTE FUNCTION notify_on_change();
 DROP TRIGGER IF EXISTS on_blog_post_change ON blog_posts;
 CREATE TRIGGER on_blog_post_change
 AFTER INSERT OR UPDATE ON blog_posts
+FOR EACH ROW EXECUTE FUNCTION notify_on_change();
+
+-- Newsletter Subscribers Table
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email TEXT UNIQUE NOT NULL,
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'unsubscribed')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE newsletter_subscribers ENABLE ROW LEVEL SECURITY;
+
+-- Allow anonymous signups for newsletter
+CREATE POLICY "Anyone can subscribe to newsletter" ON newsletter_subscribers
+    FOR INSERT WITH CHECK (true);
+
+-- Only admins can see the list
+CREATE POLICY "Admins can view subscribers" ON newsletter_subscribers
+    FOR SELECT USING (is_admin());
+
+-- Add trigger for newsletter notifications
+CREATE TRIGGER on_newsletter_signup
+AFTER INSERT ON newsletter_subscribers
 FOR EACH ROW EXECUTE FUNCTION notify_on_change();

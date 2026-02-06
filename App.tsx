@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useLocation, Link } from 'react-router-dom';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { SAUNAS } from './constants';
 import { Sauna, LanguageCode, Country, Profile } from './types';
 import { SaunaModal } from './components/SaunaModal';
@@ -13,19 +14,18 @@ import { BlogPage } from './pages/BlogPage';
 import { NewsPage } from './pages/NewsPage';
 import { AboutPage } from './pages/AboutPage';
 import { PartnersPage } from './pages/PartnersPage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+import { CookiePolicyPage } from './pages/CookiePolicyPage';
+import { UnsubscribePage } from './pages/UnsubscribePage';
 import { BlogPostEditor } from './components/BlogPostEditor';
 import { supabase } from './supabaseClient';
 import { User } from '@supabase/supabase-js';
-import * as L from 'leaflet';
+import { Map as MapIcon, Search, PlusCircle, ArrowRight, Compass, Shield, Wind } from 'lucide-react';
+import { cn } from './lib/utils';
+import { MapView } from './components/MapView';
+import { Snowfall } from './components/Snowfall';
 
-// --- Sub-components (Moved outside to prevent re-creation on every render) ---
-
-const PlaceholderPage = ({ title }: { title: string }) => (
-    <div className="py-24 max-w-[1200px] mx-auto px-6 text-center">
-        <h1 className="text-4xl font-black text-slate-900 mb-4">{title}</h1>
-        <p className="text-slate-500">This section is currently under development to reflect the Nordic heritage.</p>
-    </div>
-);
+// --- Sub-components ---
 
 interface HomePageProps {
     lang: LanguageCode;
@@ -35,16 +35,13 @@ interface HomePageProps {
     allVisibleSaunas: Sauna[];
     availableCountries: string[];
     getSaunaCount: (country: string) => number;
-    mapContainerRef: React.RefObject<HTMLDivElement>;
-    handleZoomIn: () => void;
-    handleZoomOut: () => void;
-    handleReset: () => void;
     searchTerm: string;
     setSearchTerm: (val: string) => void;
-    handleSearch: () => void;
     user: User | null;
     setShowContributionForm: (show: boolean) => void;
     setShowAuthModal: (show: boolean) => void;
+    setSelectedSauna: (sauna: Sauna) => void;
+    getCountryInfo: (country: string) => { flag: string; name: string };
 }
 
 const HomePage = ({
@@ -55,175 +52,301 @@ const HomePage = ({
     allVisibleSaunas,
     availableCountries,
     getSaunaCount,
-    mapContainerRef,
-    handleZoomIn,
-    handleZoomOut,
-    handleReset,
     searchTerm,
     setSearchTerm,
-    handleSearch,
     user,
     setShowContributionForm,
-    setShowAuthModal
-}: HomePageProps) => (
-    <>
-        {/* Hero Section */}
-        <section id="hero-section" className="relative h-screen flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 z-0">
-                <div className="absolute inset-0 bg-slate-900/40 z-10"></div>
-                <video autoPlay muted loop playsInline className="w-full h-full object-cover">
-                    <source src="/Hero.mp4" type="video/mp4" />
-                </video>
-            </div>
-            <div className="relative z-30 text-center max-w-4xl px-6">
-                <span className="inline-block px-4 py-1.5 mb-6 rounded-full border border-white/30 text-white text-xs font-bold tracking-[0.2em] uppercase bg-black/20 backdrop-blur-sm">
-                    {lang === 'sv' ? 'Gränsöverskridande Kulturarv' : lang === 'fi' ? 'Rajat ylittävä kulttuuriperintö' : 'Cross-Border Cultural Heritage'}
-                </span>
-                <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-[1.1] tracking-tight">
-                    {lang === 'sv' ? (
-                        <>Bevara värmen i <br /><span className="text-sky">nordiska traditioner.</span></>
-                    ) : lang === 'fi' ? (
-                        <>Säilytä <br /><span className="text-sky">pohjoismaisen perinteen lämpö.</span></>
-                    ) : (
-                        <>Preserving the Heat of <br /><span className="text-sky">Nordic Traditions.</span></>
-                    )}
-                </h1>
-                <p className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-                    {lang === 'sv'
-                        ? 'Upptäck den atmosfäriska historien och de levande traditionerna av finska rökbastur och svenska vinterbad i vårt interaktiva digitala arkiv.'
-                        : lang === 'fi'
-                            ? 'Tutustu suomalaisten savusaunojen ja ruotsalaisten talvikylpyjen tunnelmalliseen historiaan ja eläviin perinteisiin interaktiivisessa digitaalisessa arkistossamme.'
-                            : 'Discover the atmospheric history and living traditions of Finnish smoke saunas and Swedish winter baths in our interactive digital archive.'
-                    }
-                </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <button
-                        onClick={scrollToSection('map-section')}
-                        className="bg-white text-primary hover:scale-105 transition-transform px-10 py-4 rounded-xl font-bold flex items-center gap-2 shadow-2xl"
-                    >
-                        {lang === 'sv' ? 'Utforska kartan' : lang === 'fi' ? 'Tutki karttaa' : 'Explore the Map'} <span className="material-symbols-outlined">map</span>
-                    </button>
-                </div>
-            </div>
+    setShowAuthModal,
+    setSelectedSauna,
+    getCountryInfo
+}: HomePageProps) => {
+    const { scrollY } = useScroll();
+    const videoScale = useTransform(scrollY, [0, 800], [1, 1.2]);
+    const textOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+    const textY = useTransform(scrollY, [0, 300], [0, 50]);
 
-            {/* Fixed Scroll Indicator positioning */}
-            <div className="absolute bottom-[90px] left-0 right-0 z-30 flex justify-center animate-bounce pointer-events-none">
-                <button
-                    onClick={scrollToSection('map-section')}
-                    className="pointer-events-auto text-white flex flex-col items-center gap-2 opacity-70 hover:opacity-100 transition-opacity"
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 10 },
+        visible: { opacity: 1, y: 0 }
+    };
+
+    return (
+        <div className="bg-[var(--bg-main)] transition-colors duration-300 overflow-hidden">
+            {/* Hero Section */}
+            <section id="hero-section" className="relative h-screen flex items-center justify-center overflow-hidden">
+                <motion.div style={{ scale: videoScale }} className="absolute inset-0 z-0">
+                    <div className="absolute inset-0 bg-slate-900/40 z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[var(--bg-main)] z-20" />
+                    <video autoPlay muted loop playsInline className="w-full h-full object-cover grayscale-[20%] brightness-[90%] transition-all duration-1000">
+                        <source src="/Hero.mp4" type="video/mp4" />
+                    </video>
+                </motion.div>
+
+                <motion.div
+                    style={{ opacity: textOpacity, y: textY }}
+                    className="relative z-30 text-center max-w-5xl px-6 pt-24 pb-12"
                 >
-                    <span className="text-[10px] font-bold tracking-widest uppercase">Scroll</span>
-                    <span className="material-symbols-outlined text-3xl">expand_more</span>
-                </button>
-            </div>
-        </section>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2, duration: 0.8 }}
+                    >
+                        <span className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full border border-white/30 text-white text-[10px] font-black tracking-[0.3em] uppercase bg-black/50 shadow-2xl">
+                            <div className="size-1.5 bg-primary animate-pulse rounded-full" />
+                            {lang === 'sv' ? 'Nordisk Bastukultur' : lang === 'fi' ? 'Pohjoismainen saunakulttuuri' : 'Nordic Sauna Heritage'}
+                        </span>
+                    </motion.div>
 
-        {/* Interactive Map Section */}
-        <section id="map-section" className="max-w-[1200px] mx-auto px-6 py-24">
-            <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <h2 className="text-3xl font-black text-slate-900 mb-4">{lang === 'sv' ? 'Interaktiv Arkivkarta' : lang === 'fi' ? 'Interaktiivinen arkistokartta' : 'Interactive Archive Map'}</h2>
-                    <p className="text-slate-500 max-w-lg font-light">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4, duration: 1, ease: [0.22, 1, 0.36, 1] }}
+                        className="text-6xl md:text-8xl lg:text-[7.5rem] font-black text-white mb-8 leading-[0.85] tracking-tighter"
+                    >
+                        NORDIC SAUNA <br /><span className="text-primary italic">MAP.</span>
+                    </motion.h1>
+
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.8, duration: 1 }}
+                        className="text-lg md:text-2xl text-white/90 mb-12 max-w-2xl mx-auto font-light leading-relaxed"
+                    >
                         {lang === 'sv'
-                            ? 'Navigera genom registrerade kulturplatser i Norden. Filtrera efter bastutyp, historisk betydelse eller geografiskt område.'
+                            ? 'Upptäck värmen i de nordiska traditionerna genom ett kurerat arkiv av tidlösa rökbastur och kalla bad.'
                             : lang === 'fi'
-                                ? 'Navigoi Pohjoismaiden rekisteröityjen kulttuurikohteiden välillä. Suodata saunatyypin, historiallisen merkityksen tai maantieteellisen alueen mukaan.'
-                                : 'Navigate through registered cultural sites across the Nordic region. Filter by sauna type, historical significance, or geographical area.'
+                                ? 'Löydä pohjoismaisten perinteiden lämpö kuratoidun arkiston kautta, joka sisältää ajattomia savusaunoja ja kylmiä kylpyjä.'
+                                : 'Discover the warmth of Nordic traditions through a curated archive of timeless smoke saunas and cold baths.'
                         }
-                    </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    <button
-                        onClick={() => handleCountryFilter('All')}
-                        className={`px-5 py-2.5 rounded-full border text-sm font-bold transition-all ${filterCountry === 'All' ? 'bg-nordic-lake border-transparent text-white shadow-lg shadow-primary/20' : 'bg-white border-sky/20 text-slate-500 hover:border-primary/40'}`}
+                    </motion.p>
+
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 1, duration: 0.5 }}
+                        className="flex flex-col sm:flex-row items-center justify-center gap-6"
                     >
-                        {lang === 'sv' ? 'Alla' : lang === 'fi' ? 'Kaikki' : 'All'} ({allVisibleSaunas.length})
-                    </button>
-                    {availableCountries.map(c => (
                         <button
-                            key={c}
-                            onClick={() => handleCountryFilter(c)}
-                            className={`px-5 py-2.5 rounded-full border text-sm font-bold transition-all ${filterCountry === c ? 'bg-nordic-lake border-transparent text-white shadow-lg shadow-primary/20' : 'bg-white border-sky/20 text-slate-500 hover:border-primary/40'}`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                const element = document.getElementById('map-section');
+                                if (element) {
+                                    const headerOffset = 100;
+                                    const elementPosition = element.getBoundingClientRect().top;
+                                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                                    window.scrollTo({
+                                        top: offsetPosition,
+                                        behavior: 'smooth'
+                                    });
+                                }
+                            }}
+                            className="group relative bg-white text-slate-900 px-12 py-6 rounded-full font-black uppercase text-[10px] tracking-[0.3em] flex items-center gap-4 shadow-[0_20px_50px_rgba(255,255,255,0.1)] transition-all hover:scale-105 active:scale-95"
                         >
-                            {c} ({getSaunaCount(c)})
+                            <span className="relative z-10">{lang === 'sv' ? 'Utforska kartan' : lang === 'fi' ? 'Tutki karttaa' : 'Explore the Map'}</span>
+                            <div className="size-8 bg-slate-900 text-white rounded-full flex items-center justify-center -mr-2 group-hover:translate-x-1 transition-transform">
+                                <ArrowRight className="size-4" />
+                            </div>
                         </button>
-                    ))}
+                    </motion.div>
+                </motion.div>
+
+                <div className="hidden lg:flex absolute bottom-12 right-12 z-30 flex-col items-center pointer-events-none">
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: [0.3, 1, 0.3], y: [0, 15, 0], x: 0 }}
+                        transition={{
+                            opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                            y: { duration: 2.5, repeat: Infinity, ease: "easeInOut" },
+                            x: { duration: 1.2, ease: "easeOut" }
+                        }}
+                        className="flex flex-col items-center gap-6"
+                    >
+                        <span
+                            className="text-[9px] font-black text-white/60 tracking-[0.5em] uppercase"
+                            style={{ writingMode: 'vertical-rl' }}
+                        >
+                            Scroll
+                        </span>
+                        <div className="w-px h-24 bg-gradient-to-b from-white/60 via-white/20 to-transparent" />
+                    </motion.div>
                 </div>
-            </div>
+            </section>
 
-            <div className="relative w-full h-[600px] bg-white rounded-[2rem] border border-sky/20 shadow-2xl overflow-hidden group p-2">
-                <div ref={mapContainerRef} className="relative w-full h-full z-10 bg-slate-50 rounded-[1.5rem] overflow-hidden shadow-inner"></div>
+            {/* Features Stagger Section */}
+            <section className="py-20 lg:py-40 bg-[var(--bg-main)] relative overflow-hidden">
+                <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
+                    <FeatureCard
+                        icon={<Compass className="size-6" />}
+                        title={lang === 'sv' ? 'Levande Historia' : 'Living History'}
+                        desc={lang === 'sv' ? 'Digitaliserar hundratals år av badtraditioner för den moderna eran.' : 'Digitizing centuries of bathing traditions for the modern era.'}
+                        delay={0.1}
+                    />
+                    <FeatureCard
+                        icon={<Shield className="size-6" />}
+                        title={lang === 'sv' ? 'Kulturarv' : 'Cultural Heritage'}
+                        desc={lang === 'sv' ? 'Backas av Erasmus+ för att främja gränsöverskridande samarbete.' : 'Backed by Erasmus+ to foster cross-border cultural collaboration.'}
+                        delay={0.2}
+                    />
+                    <FeatureCard
+                        icon={<Wind className="size-6" />}
+                        title={lang === 'sv' ? 'Välmående' : 'Wellbeing'}
+                        desc={lang === 'sv' ? 'Upplev den hälsofrämjande magin bakom den nordiska bastun.' : 'Experience the health-promoting magic behind the Nordic sauna.'}
+                        delay={0.3}
+                    />
+                </div>
+            </section>
 
-                <div className="absolute top-8 left-8 z-10 flex flex-col gap-2 pointer-events-auto">
-                    <div className="bg-white/90 backdrop-blur-md p-2 rounded-2xl border border-sky/10 shadow-xl">
-                        <button onClick={handleZoomIn} className="flex size-11 items-center justify-center hover:bg-sky/10 rounded-xl text-primary transition-colors active:scale-95">
-                            <span className="material-symbols-outlined font-bold">add</span>
-                        </button>
-                        <div className="h-px w-full bg-sky/10 my-1"></div>
-                        <button onClick={handleZoomOut} className="flex size-11 items-center justify-center hover:bg-sky/10 rounded-xl text-primary transition-colors active:scale-95">
-                            <span className="material-symbols-outlined font-bold">remove</span>
-                        </button>
-                    </div>
-                    <button onClick={handleReset} className="bg-white/90 backdrop-blur-md size-11 flex items-center justify-center rounded-2xl border border-sky/10 shadow-xl text-primary active:scale-95 transition-transform">
-                        <span className="material-symbols-outlined font-bold text-sky">my_location</span>
-                    </button>
+            {/* Interactive Map Section */}
+            <section id="map-section" className="max-w-[1440px] mx-auto px-6 md:px-12 py-16 lg:py-32 relative">
+                <div className="mb-24 flex flex-col lg:flex-row lg:items-end justify-between gap-12 relative z-10">
+                    <motion.div
+                        initial={{ opacity: 0, x: -30 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        className="max-w-2xl"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            viewport={{ once: true }}
+                            className="inline-block px-4 py-1.5 mb-8 rounded-full bg-slate-100 border border-slate-200 text-slate-800 text-[10px] font-black tracking-[0.3em] uppercase"
+                        >
+                            Interactive Atlas
+                        </motion.div>
+                        <h2 className="text-6xl md:text-8xl font-black text-slate-900 dark:text-white mb-8 tracking-tighter leading-none">
+                            {lang === 'sv' ? 'Utforska Kartan' : lang === 'fi' ? 'Tutki Karttaa' : 'Explore the Map'}
+                        </h2>
+                        <p className="text-xl text-slate-400 font-light leading-relaxed max-w-xl">
+                            {lang === 'sv'
+                                ? 'Vårt interaktiva verktyg låter dig navigera genom registrerade platser, dolda arkiv och personliga berättelser.'
+                                : 'Navigate through registered cultural sites, hidden archives, and personal stories across the Nordic region.'
+                            }
+                        </p>
+                    </motion.div>
+
+                    <motion.div
+                        variants={containerVariants}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        className="flex flex-wrap gap-3"
+                    >
+                        <motion.button
+                            variants={itemVariants}
+                            onClick={() => handleCountryFilter('All')}
+                            className={cn(
+                                "px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95",
+                                filterCountry === 'All'
+                                    ? "bg-slate-900 dark:bg-primary text-white shadow-2xl shadow-slate-900/20"
+                                    : "bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                            )}
+                        >
+                            {lang === 'sv' ? 'Alla' : lang === 'fi' ? 'Kaikki' : 'All'} ({allVisibleSaunas.length})
+                        </motion.button>
+                        {availableCountries.map(c => {
+                            const { flag, name } = getCountryInfo(c);
+                            return (
+                                <motion.button
+                                    key={c}
+                                    variants={itemVariants}
+                                    onClick={() => handleCountryFilter(c)}
+                                    className={cn(
+                                        "px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center gap-2",
+                                        filterCountry === c
+                                            ? "bg-slate-900 dark:bg-primary text-white shadow-2xl shadow-slate-900/20"
+                                            : "bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                    )}
+                                >
+                                    <span>{name} ({getSaunaCount(c)})</span>
+                                </motion.button>
+                            );
+                        })}
+                    </motion.div>
                 </div>
 
-                <div className="absolute bottom-10 left-0 right-0 px-6 z-20 flex justify-center pointer-events-none">
-                    <div className="bg-white/95 backdrop-blur-xl border border-sky/20 rounded-full p-1.5 flex items-center shadow-[0_20px_50px_rgba(37,99,235,0.15)] transition-all pointer-events-auto w-full max-w-md">
-                        <span className="material-symbols-outlined text-primary ml-3 text-[22px] select-none shrink-0">search</span>
-                        <input
-                            className="bg-transparent border-none flex-1 text-slate-800 placeholder-slate-400 focus:ring-0 text-sm px-3 min-w-0"
-                            placeholder={lang === 'sv' ? 'Sök platser...' : lang === 'fi' ? 'Etsi kohteita...' : 'Search locations...'}
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        />
-                        <button onClick={handleSearch} className="bg-nordic-lake text-white text-[10px] font-black uppercase tracking-[0.15em] h-10 px-6 rounded-full shadow-md shadow-primary/20 active:scale-95 transition-all flex items-center justify-center shrink-0">
-                            {lang === 'sv' ? 'Sök' : lang === 'fi' ? 'Hae' : 'Search'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        {/* Educational Section */}
-        <section id="education-section" className="bg-frost py-24">
-            <div className="max-w-[1200px] mx-auto px-6 text-center">
-                <h2 className="text-4xl font-black text-slate-900 mb-8">Learning the Heat</h2>
-                <p className="text-slate-500 mb-12 max-w-2xl mx-auto">Explore our pedagogical resources designed to bring Nordic heritage into the classroom.</p>
-                <Link to="/education" className="inline-block bg-primary text-white px-8 py-3 rounded-xl font-bold shadow-xl shadow-primary/20 hover:scale-105 transition-transform">View All Resources</Link>
-            </div>
-        </section>
-
-        {/* Contribute Banner */}
-        <section className="bg-nordic-lake py-24 relative overflow-hidden">
-            <div className="absolute inset-0 bg-white/10 opacity-20 pointer-events-none"></div>
-            <div className="max-w-[1200px] mx-auto px-6 text-center text-white relative z-10">
-                <h2 className="text-4xl font-black mb-6">
-                    {lang === 'sv' ? 'Är du en bastuägare?' : lang === 'fi' ? 'Oletko saunan omistaja?' : 'Are you a Sauna Owner?'}
-                </h2>
-                <p className="text-white/80 max-w-2xl mx-auto mb-12 text-lg font-light leading-relaxed">
-                    {lang === 'sv' ? 'Bidra till det nordiska kulturarvet genom att skicka in din bastus historia.' : 'Contribute to the Nordic cultural heritage by submitting your sauna\'s history.'}
-                </p>
-                <button
-                    onClick={() => user ? setShowContributionForm(true) : setShowAuthModal(true)}
-                    className="bg-white text-primary px-12 py-5 rounded-2xl font-black text-xl hover:scale-105 transition-transform shadow-2xl shadow-primary/40"
+                <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="relative rounded-[4rem] overflow-hidden shadow-2xl shadow-slate-200"
                 >
-                    {lang === 'sv' ? 'Skicka in ditt bidrag' : 'Submit Your Archive Entry'}
-                </button>
-            </div>
-        </section>
-    </>
+                    <MapView
+                        saunas={allVisibleSaunas}
+                        lang={lang}
+                        filterCountry={filterCountry}
+                        searchTerm={searchTerm}
+                        setSearchTerm={setSearchTerm}
+                        onSaunaSelect={setSelectedSauna}
+                        handleCountryFilter={handleCountryFilter}
+                    />
+                </motion.div>
+            </section>
+
+            {/* Contribute Banner - Premium Style */}
+            <section className="py-32 lg:py-60 relative overflow-hidden bg-slate-900">
+                <div className="absolute inset-0 z-0">
+                    <img src="https://images.unsplash.com/photo-1519783166144-83936959822a?auto=format&fit=crop&q=80" className="w-full h-full object-cover opacity-20 scale-105" alt="Sauna texture" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/10 to-transparent" />
+                </div>
+
+                <div className="max-w-[1240px] mx-auto px-6 text-center relative z-10">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                    >
+                        <h2 className="text-6xl md:text-[8rem] font-black text-white mb-10 tracking-tighter leading-none">
+                            JOIN THE <br /><span className="text-primary italic">LEGACY.</span>
+                        </h2>
+                        <p className="text-xl md:text-2xl text-white/50 max-w-2xl mx-auto mb-20 font-light leading-relaxed">
+                            {lang === 'sv'
+                                ? 'Bli en del av historien. Skicka in dina arkivbilder, berättelser och platser idag.'
+                                : 'Become part of history. Contribute your archival photos, stories, and locations to the digital archive map today.'}
+                        </p>
+                        <button
+                            onClick={() => user ? setShowContributionForm(true) : setShowAuthModal(true)}
+                            className="group bg-primary text-white px-16 py-8 rounded-full font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-primary/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-6 mx-auto"
+                        >
+                            {lang === 'sv' ? 'Bidra till kartan' : 'Add Sauna'}
+                            <div className="size-10 bg-white/20 rounded-full flex items-center justify-center -mr-4 group-hover:rotate-45 transition-transform">
+                                <PlusCircle className="size-5" />
+                            </div>
+                        </button>
+                    </motion.div>
+                </div>
+            </section >
+        </div >
+    );
+};
+
+const FeatureCard = ({ icon, title, desc, delay }: { icon: any, title: string, desc: string, delay: number }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay, duration: 0.8 }}
+        className="group p-12 rounded-[3.5rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 transition-all hover:shadow-2xl hover:shadow-slate-200/40 dark:hover:shadow-none"
+    >
+        <div className="size-16 bg-slate-50 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center text-slate-900 dark:text-white shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-500 mb-10">
+            {icon}
+        </div>
+        <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter uppercase">{title}</h3>
+        <p className="text-slate-400 leading-relaxed font-light text-lg">{desc}</p>
+    </motion.div>
 );
 
 // --- Main App Component ---
 
 const App = () => {
     const location = useLocation();
-    console.log("App component mounting or route changed:", location.pathname);
-    // Fallback to SAUNAS constants if DB is empty to ensure user sees content
     const [saunas, setSaunas] = useState<Sauna[]>(SAUNAS);
     const [selectedSauna, setSelectedSauna] = useState<Sauna | null>(null);
     const [showContributionForm, setShowContributionForm] = useState(false);
@@ -233,10 +356,6 @@ const App = () => {
     const [loading, setLoading] = useState(true);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
-    const mapContainerRef = useRef<HTMLDivElement>(null);
-    const markersRef = useRef<L.Marker[]>([]);
-
     // AUTH STATE
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -244,6 +363,16 @@ const App = () => {
     const [showAdminPanel, setShowAdminPanel] = useState(false);
     const [showUserPanel, setShowUserPanel] = useState(false);
     const [showBlogEditor, setShowBlogEditor] = useState(false);
+    const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+    // Theme Management
+    useEffect(() => {
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [theme]);
 
     // Auth Session Manager
     useEffect(() => {
@@ -277,6 +406,11 @@ const App = () => {
                 .single();
             if (error) throw error;
             setProfile(data);
+
+            // Apply saved preferences if they exist
+            const prefs = data.metadata?.preferences || data.preferences || {};
+            if (prefs.theme) setTheme(prefs.theme);
+            if (prefs.language) setLang(prefs.language);
         } catch (err) {
             console.error('Profile fetch failed:', err);
         }
@@ -285,21 +419,35 @@ const App = () => {
     const fetchSaunas = async () => {
         setLoading(true);
         try {
-            console.log("Fetching saunas from Supabase...");
             const { data, error } = await supabase
                 .from('saunas')
                 .select('*');
 
             if (error) throw error;
 
-            console.log(`Successfully fetched ${data?.length || 0} saunas.`);
-
             if (data && data.length > 0) {
-                const dbSaunas = (data || []).map(s => ({
-                    ...s,
-                    coordinates: typeof s.coordinates === 'string' ? JSON.parse(s.coordinates) : s.coordinates,
-                    content: typeof s.content === 'string' ? JSON.parse(s.content) : s.content
-                }));
+                const dbSaunas = (data || []).map(s => {
+                    // Resilient parsing for JSON fields
+                    const metadata = typeof s.metadata === 'string' ? JSON.parse(s.metadata) : (s.metadata || {});
+                    const coordinates = typeof s.coordinates === 'string' ? JSON.parse(s.coordinates) : (s.coordinates || {});
+                    const content = typeof s.content === 'string' ? JSON.parse(s.content) : (s.content || {});
+
+                    // Extract and normalize country (fallback to Finland if missing)
+                    let rawCountry = metadata?.country || s.country || 'Finland';
+                    if (typeof rawCountry === 'string' && rawCountry) {
+                        rawCountry = rawCountry.charAt(0).toUpperCase() + rawCountry.slice(1).toLowerCase();
+                    } else {
+                        rawCountry = 'Finland';
+                    }
+
+                    return {
+                        ...s,
+                        metadata,
+                        coordinates,
+                        content,
+                        country: rawCountry
+                    };
+                });
                 setSaunas(dbSaunas);
             }
         } catch (err) {
@@ -330,145 +478,34 @@ const App = () => {
         }
     };
 
-    // Initialize Map - route-aware to prevent blank map on navigation
-    useEffect(() => {
-        // If we are not on the home page, make sure to clean up the map if it exists
-        if (location.pathname !== '/') {
-            if (mapInstance) {
-                console.log("Navigating away from home. Cleaning up map instance...");
-                mapInstance.remove();
-                setMapInstance(null);
-            }
-            return;
-        }
-
-        // If we ARE on home but map isn't inited and container is ready
-        if (mapContainerRef.current && !mapInstance) {
-            console.log("Initializing map instance on Home route...");
-            const map = L.map(mapContainerRef.current, {
-                center: [64.0, 20.0],
-                zoom: 5,
-                zoomControl: false,
-                attributionControl: true
-            });
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            // Required to ensure tiles render correctly in dynamic layouts
-            setTimeout(() => {
-                map.invalidateSize();
-            }, 100);
-
-            setMapInstance(map);
-        }
-
-        // Optional: Ensure markers are updated immediately on init
-    }, [location.pathname, mapInstance]);
-
-    const filteredSaunas = saunas.filter(s => {
-        const matchesCountry = filterCountry === 'All' || s.country === filterCountry;
-        const content = typeof s.content === 'string' ? JSON.parse(s.content) : s.content;
-        const name = (content?.[lang]?.name || content?.['en']?.name || '').toLowerCase();
-        const matchesSearch = !searchTerm || name.includes(searchTerm.toLowerCase());
-        return matchesCountry && matchesSearch;
-    });
-
-    // Update Markers
-    useEffect(() => {
-        if (!mapInstance) return;
-
-        markersRef.current.forEach(m => m.remove());
-        markersRef.current = [];
-
-        filteredSaunas.forEach(sauna => {
-            const lat = Number(sauna.coordinates?.lat);
-            const lng = Number(sauna.coordinates?.lng);
-            if (isNaN(lat) || isNaN(lng)) return;
-
-            const content = typeof sauna.content === 'string' ? JSON.parse(sauna.content) : sauna.content;
-            const langContent = content?.[lang] || content?.['en'] || (content ? Object.values(content)[0] : null);
-            const saunaName = (langContent as any)?.name || 'Sauna';
-
-            const icon = L.divIcon({
-                className: 'custom-leaflet-marker',
-                html: `
-                    <div class="relative group cursor-pointer" id="marker-${sauna.sauna_id}">
-                      <div class="absolute -inset-3 bg-primary/20 rounded-full animate-ping opacity-60"></div>
-                      <div class="relative bg-white w-4 h-4 rounded-full border-2 border-primary shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-transform hover:scale-125"></div>
-                      <div class="absolute left-6 top-1/2 -translate-y-1/2 bg-white text-primary text-[10px] font-black py-1.5 px-3 rounded-full shadow-xl border border-sky/20 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all transform translate-x-1 group-hover:translate-x-0 pointer-events-none z-50">
-                         ${saunaName}
-                      </div>
-                    </div>
-                `,
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-            });
-
-            const marker = L.marker([lat, lng], { icon })
-                .addTo(mapInstance)
-                .on('click', () => {
-                    setSelectedSauna(sauna);
-                    mapInstance.flyTo([lat, lng], 10, { duration: 1.5 });
-                });
-
-            markersRef.current.push(marker);
-        });
-    }, [saunas, filterCountry, searchTerm, lang, mapInstance]);
-
     const handleCountryFilter = (country: string | 'All') => {
         setFilterCountry(country);
-        if (!mapInstance) return;
-
-        let center: L.LatLngExpression = [64.0, 20.0];
-        let zoom = 5;
-
-        if (country === Country.FINLAND) {
-            center = [64.5, 26.0];
-            zoom = 6;
-        } else if (country === Country.SWEDEN) {
-            center = [62.0, 15.0];
-            zoom = 6;
-        }
-
-        mapInstance.flyTo(center, zoom, { duration: 1.5 });
     };
 
-    const handleSearch = () => {
-        if (!searchTerm.trim()) {
-            setFilterCountry('All');
-            if (mapInstance) mapInstance.flyTo([64.0, 20.0], 5, { duration: 1.5 });
-            return;
+    const getCountryInfo = (country: string) => {
+        const info = {
+            'Finland': { flag: '🇫🇮', en: 'Finland', sv: 'Finland', fi: 'Suomi' },
+            'Sweden': { flag: '🇸🇪', en: 'Sweden', sv: 'Sverige', fi: 'Ruotsi' },
+            'Norway': { flag: '🇳🇴', en: 'Norway', sv: 'Norge', fi: 'Norja' },
+            'Denmark': { flag: '🇩🇰', en: 'Denmark', sv: 'Danmark', fi: 'Tanska' },
+            'Iceland': { flag: '🇮🇸', en: 'Iceland', sv: 'Island', fi: 'Islanti' }
+        }[country];
+
+        if (info) {
+            return {
+                flag: info.flag,
+                name: lang === 'sv' ? info.sv : lang === 'fi' ? info.fi : info.en
+            };
         }
 
-        const found = saunas.find(s => {
-            const content = typeof s.content === 'string' ? JSON.parse(s.content) : s.content;
-            const name = (content?.[lang]?.name || content?.['en']?.name || '').toLowerCase();
-            return name.includes(searchTerm.toLowerCase());
-        });
-
-        if (found && mapInstance) {
-            const lat = Number(found.coordinates?.lat);
-            const lng = Number(found.coordinates?.lng);
-            if (!isNaN(lat) && !isNaN(lng)) {
-                mapInstance.flyTo([lat, lng], 12, { duration: 1.5 });
-                setSelectedSauna(found);
-            }
-        }
-    };
-
-    const handleZoomIn = () => mapInstance?.zoomIn();
-    const handleZoomOut = () => mapInstance?.zoomOut();
-    const handleReset = () => {
-        setFilterCountry('All');
-        setSearchTerm('');
-        mapInstance?.flyTo([64.0, 20.0], 5, { duration: 1.5 });
+        return {
+            flag: '🌍',
+            name: country || (lang === 'sv' ? 'Övrigt' : lang === 'fi' ? 'Muut' : 'Other')
+        };
     };
 
     const allVisibleSaunas = saunas.filter(s => filterCountry === 'All' || s.country === filterCountry);
-    const availableCountries = Array.from(new Set(saunas.map(s => s.country)));
+    const availableCountries = Array.from(new Set(saunas.map(s => s.country))).filter(Boolean);
 
     return (
         <Layout
@@ -482,6 +519,7 @@ const App = () => {
             setShowAdminPanel={setShowAdminPanel}
             setShowUserPanel={setShowUserPanel}
         >
+            <Snowfall />
             <Routes>
                 <Route path="/" element={
                     <HomePage
@@ -492,16 +530,13 @@ const App = () => {
                         allVisibleSaunas={allVisibleSaunas}
                         availableCountries={availableCountries}
                         getSaunaCount={getSaunaCount}
-                        mapContainerRef={mapContainerRef}
-                        handleZoomIn={handleZoomIn}
-                        handleZoomOut={handleZoomOut}
-                        handleReset={handleReset}
                         searchTerm={searchTerm}
                         setSearchTerm={setSearchTerm}
-                        handleSearch={handleSearch}
                         user={user}
                         setShowContributionForm={setShowContributionForm}
                         setShowAuthModal={setShowAuthModal}
+                        setSelectedSauna={setSelectedSauna}
+                        getCountryInfo={getCountryInfo}
                     />
                 } />
                 <Route path="/blog" element={<BlogPage lang={lang} user={user} profile={profile} onWritePost={() => setShowBlogEditor(true)} />} />
@@ -509,15 +544,32 @@ const App = () => {
                 <Route path="/education" element={<EducationPage lang={lang} />} />
                 <Route path="/about" element={<AboutPage lang={lang} />} />
                 <Route path="/partners" element={<PartnersPage lang={lang} />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage lang={lang} />} />
+                <Route path="/cookies" element={<CookiePolicyPage lang={lang} />} />
+                <Route path="/unsubscribe" element={<UnsubscribePage lang={lang} />} />
             </Routes>
 
             {/* Modals */}
-            {selectedSauna && <SaunaModal sauna={selectedSauna} lang={lang} onClose={() => setSelectedSauna(null)} />}
-            {showContributionForm && <ContributionForm lang={lang} currentUser={user} onClose={() => setShowContributionForm(false)} />}
-            {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}
-            {showAdminPanel && <AdminPanel lang={lang} profile={profile} user={user} onClose={() => setShowAdminPanel(false)} onUpdate={fetchSaunas} />}
-            {showUserPanel && user && <UserPanel lang={lang} user={user} profile={profile} onClose={() => setShowUserPanel(false)} onAddSauna={() => setShowContributionForm(true)} />}
-            {showBlogEditor && user && <BlogPostEditor lang={lang} user={user} onClose={() => setShowBlogEditor(false)} onSuccess={() => setShowBlogEditor(false)} />}
+            <AnimatePresence>
+                {selectedSauna && <SaunaModal sauna={selectedSauna} lang={lang} onClose={() => setSelectedSauna(null)} />}
+                {showContributionForm && <ContributionForm lang={lang} currentUser={user} onClose={() => setShowContributionForm(false)} />}
+                {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}
+                {showAdminPanel && <AdminPanel lang={lang} profile={profile} user={user} onClose={() => setShowAdminPanel(false)} onUpdate={fetchSaunas} />}
+                {showUserPanel && user && (
+                    <UserPanel
+                        lang={lang}
+                        user={user}
+                        profile={profile}
+                        onClose={() => setShowUserPanel(false)}
+                        onAddSauna={() => setShowContributionForm(true)}
+                        theme={theme}
+                        setTheme={setTheme}
+                        setLang={setLang}
+                        onUpdate={fetchSaunas}
+                    />
+                )}
+                {showBlogEditor && user && <BlogPostEditor lang={lang} user={user} onClose={() => setShowBlogEditor(false)} onSuccess={() => setShowBlogEditor(false)} />}
+            </AnimatePresence>
         </Layout>
     );
 };

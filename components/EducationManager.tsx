@@ -184,7 +184,7 @@ export const EducationManager: React.FC<EducationManagerProps> = ({ materials, t
                                 <option value="pdf">PDF Download</option>
                                 <option value="presentation">Presentation</option>
                                 <option value="video">YouTube Video</option>
-                                <option value="twee">Twee Interactive</option>
+                                <option value="twee">Interactive Exercise</option>
                             </select>
                         </div>
                         <div className="md:col-span-2 space-y-2">
@@ -193,7 +193,7 @@ export const EducationManager: React.FC<EducationManagerProps> = ({ materials, t
                         </div>
                         {formData.type === 'video' || formData.type === 'twee' ? (
                             <div className="md:col-span-2 space-y-2">
-                                <label className="text-[10px] font-black uppercase text-slate-400 px-2">URL (YouTube Link or Twee hosted link)</label>
+                                <label className="text-[10px] font-black uppercase text-slate-400 px-2">URL (YouTube Link or Interactive Exercise link)</label>
                                 <input type="url" value={formData.url} onChange={e => setFormData({ ...formData, url: e.target.value })} className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold text-sm" />
                             </div>
                         ) : (
@@ -227,7 +227,7 @@ export const EducationManager: React.FC<EducationManagerProps> = ({ materials, t
                             </div>
                             <div>
                                 <h4 className="font-black text-xs text-slate-900 uppercase">{m.title}</h4>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{m.type}</p>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{m.type === 'twee' ? 'interactive exercise' : m.type}</p>
                             </div>
                         </div>
                         <div className="flex gap-2">

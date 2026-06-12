@@ -110,14 +110,14 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ track }) => {
 
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-baseline mb-1">
-          <h4 className={`font-bold text-sm truncate pr-2 ${error ? 'text-red-600' : 'text-slate-800 dark:text-slate-200'}`}>
+          <h4 className={`font-medium text-sm truncate pr-2 ${error ? 'text-red-600' : 'text-slate-800 dark:text-slate-200'}`}>
             {track.title} {error && '(Error playing file)'}
           </h4>
-          <span className="text-[10px] text-slate-400 font-mono font-bold tracking-tighter bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded uppercase">
+          <span className="text-xs text-slate-400 font-mono font-medium tracking-tight bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded uppercase">
             {error ? 'ERR' : `${currentTime} / ${actualDuration}`}
           </span>
         </div>
-        <div className="text-[10px] text-cedar font-black uppercase tracking-widest mb-3 opacity-70 group-hover:opacity-100 transition-opacity">{track.speaker}</div>
+        <div className="text-xs text-cedar font-semibold uppercase tracking-wide mb-3 opacity-70 group-hover:opacity-100 transition-opacity">{track.speaker}</div>
 
         {/* Progress Bar */}
         <div className="relative h-1.5 w-full bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden">

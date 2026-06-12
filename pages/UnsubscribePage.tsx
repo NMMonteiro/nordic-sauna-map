@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { db } from '../lib/firebase';
+import {
+    collection,
+    query,
+    where,
+    getDocs,
+    updateDoc,
+    doc,
+    addDoc,
+    serverTimestamp
+} from 'firebase/firestore';
 import { LanguageCode } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertCircle, Loader2, Home, Heart, MailX, MoveLeft, Sparkles } from 'lucide-react';
@@ -27,28 +37,25 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
             }
 
             try {
-                // 1. Try to find and unsubscribe from dedicated list
-                const { data: subData } = await supabase
-                    .from('newsletter_subscribers')
-                    .select('id')
-                    .eq('email', email)
-                    .single();
+                // Find and unsubscribe
+                const q = query(
+                    collection(db, 'newsletter_subscribers'),
+                    where('email', '==', email.toLowerCase())
+                );
+                const querySnapshot = await getDocs(q);
 
-                if (subData) {
-                    await supabase
-                        .from('newsletter_subscribers')
-                        .update({ status: 'unsubscribed' })
-                        .eq('email', email);
+                if (!querySnapshot.empty) {
+                    const docId = querySnapshot.docs[0].id;
+                    await updateDoc(doc(db, 'newsletter_subscribers', docId), {
+                        status: 'unsubscribed',
+                        updated_at: serverTimestamp()
+                    });
                 } else {
-                    // 2. If they are a member but not in subscriber list, 
-                    // we create an 'unsubscribed' record for them to ensure 
-                    // future newsletters skip them
-                    await supabase
-                        .from('newsletter_subscribers')
-                        .insert([{
-                            email: email,
-                            status: 'unsubscribed'
-                        }]);
+                    await addDoc(collection(db, 'newsletter_subscribers'), {
+                        email: email.toLowerCase(),
+                        status: 'unsubscribed',
+                        created_at: serverTimestamp()
+                    });
                 }
 
                 setStatus('success');
@@ -65,38 +72,62 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
         en: {
             loading: "Processing your request...",
             success: "You've been unsubscribed",
-            message: "We're genuinely sorry to see you leave, but we respect your inbox. You won't hear from us again.",
-            emotion: "Sorry to see you go!",
+            message: "We respect your choice and your inbox. You won't receive our workshop updates anymore.",
+            emotion: "We'll miss you!",
             error: "Connection Error",
-            error_detailed: "Our archive is currently experiencing high heat. Please try again or contact support.",
+            error_detailed: "Our server is currently busy. Please try again or contact support.",
             invalid: "Invalid Link",
-            invalid_detailed: "This link has cooled down or is incomplete.",
+            invalid_detailed: "This link is expired or incomplete.",
             back_home: "Return to Home",
             stay_connected: "Changed your mind? You're always welcome back."
         },
         sv: {
             loading: "Behandlar din begäran...",
             success: "Du är nu avregistrerad",
-            message: "Vi är genuint ledsna att se dig lämna, men vi respekterar din inkorg. Du kommer inte att höra från oss igen.",
-            emotion: "Tråkigt att se dig gå!",
+            message: "Vi respekterar ditt val och din inkorg. Du kommer inte längre att få våra workshop-uppdateringar.",
+            emotion: "Vi kommer att sakna dig!",
             error: "Anslutningsfel",
-            error_detailed: "Vårt arkiv upplever för närvarande hög värme. Försök igen eller kontakta support.",
+            error_detailed: "Vår server är för närvarande upptagen. Försök igen eller kontakta support.",
             invalid: "Ogiltig länk",
-            invalid_detailed: "Denna länk har svalnat eller är ofullständig.",
+            invalid_detailed: "Denna länk har gått ut eller är ofullständig.",
             back_home: "Tillbaka till hem",
             stay_connected: "Ändrat dig? Du är alltid välkommen tillbaka."
         },
         fi: {
             loading: "Käsitellään pyyntöäsi...",
             success: "Tilauksesi on peruutettu",
-            message: "Olemme aidosti pahoillamme nähdessämme sinun lähtevän, mutta kunnioitamme sähköpostiasi. Et kuule meistä enää.",
-            emotion: "Pahoillamme, että lähdet!",
+            message: "Kunnioitamme valintaasi. Et saa enää ilmoituksia työpajoistamme.",
+            emotion: "Jäämme kaipaamaan sinua!",
             error: "Yhteysvirhe",
-            error_detailed: "Arkistossamme on tällä hetkellä ruuhkaa. Yritä uudelleen tai ota yhteyttä tukeen.",
+            error_detailed: "Palvelimemme on tällä hetkellä varattu. Yritä uudelleen tai ota yhteyttä tukeen.",
             invalid: "Virheellinen linkki",
             invalid_detailed: "Tämä linkki on vanhentunut tai puutteellinen.",
             back_home: "Takaisin kotiin",
             stay_connected: "Muutitko mielesi? Olet aina tervetullut takaisin."
+        },
+        ar: {
+            loading: "جاري معالجة طلبك...",
+            success: "تم إلغاء الاشتراك بنجاح",
+            message: "نحن نحترم اختيارك. لن تتلقى تحديثات ورش العمل بعد الآن.",
+            emotion: "سنفتقدك!",
+            error: "خطأ في الاتصال",
+            error_detailed: "خادمنا مشغول حاليًا. يرجى المحاولة مرة أخرى أو الاتصال بالدعم.",
+            invalid: "رابط غير صالح",
+            invalid_detailed: "هذا الرابط منتهي الصلاحية أو غير مكتمل.",
+            back_home: "العودة إلى الصفحة الرئيسية",
+            stay_connected: "هل غيرت رأيك؟ أنت مرحب بك دائمًا للعودة."
+        },
+        uk: {
+            loading: "Обробка вашого запиту...",
+            success: "Ви відписалися",
+            message: "Ми поважаємо ваш вибір. Ви більше не отримуватимете оновлення про наші воркшопи.",
+            emotion: "Нам буде вас бракувати!",
+            error: "Помилка з'єднання",
+            error_detailed: "Наш сервер зараз зайнятий. Спробуйте ще раз або зверніться до підтримки.",
+            invalid: "Недійсне посилання",
+            invalid_detailed: "Це посилання застаріло або є неповним.",
+            back_home: "Повернутися на головну",
+            stay_connected: "Змінили думку? Ви завжди можете повернутися."
         }
     }[lang] || {
         loading: "Processing...",
@@ -107,11 +138,12 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
         error_detailed: "Please try again later.",
         invalid: "Invalid",
         invalid_detailed: "Invalid link.",
-        back_home: "Back Home"
+        back_home: "Back Home",
+        stay_connected: "You're always welcome back."
     };
 
     return (
-        <div className="min-h-screen bg-[#fcfdfe] relative overflow-hidden flex items-center justify-center py-20 px-6">
+        <div className="min-h-screen bg-bg-surface relative overflow-hidden flex items-center justify-center py-20 px-6">
             {/* Background elements for premium feel */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20" />
             <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
@@ -121,7 +153,7 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-[3.5rem] border border-slate-100 shadow-[0_40px_100px_rgba(0,0,0,0.06)] overflow-hidden"
+                    className="bg-bg-card rounded-[3.5rem] border border-border-main shadow-xl overflow-hidden"
                 >
                     <div className="p-12 lg:p-20 text-center">
                         <AnimatePresence mode="wait">
@@ -144,8 +176,8 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">{t.loading}</h2>
-                                        <p className="text-slate-400 font-medium">Updating the Nordic Archive...</p>
+                                        <h2 className="text-2xl font-semibold uppercase tracking-tight text-text-main">{t.loading}</h2>
+                                        <p className="text-text-muted font-medium">Suomiportaat Workshop Platform</p>
                                     </div>
                                 </motion.div>
                             )}
@@ -158,7 +190,7 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
                                     className="space-y-10"
                                 >
                                     <div className="relative inline-block">
-                                        <div className="size-24 rounded-[2.5rem] bg-slate-900 text-white flex items-center justify-center mb-2 shadow-2xl shadow-slate-900/20 rotate-3">
+                                        <div className="size-24 rounded-[2.5rem] bg-secondary text-white flex items-center justify-center mb-2 shadow-2xl rotate-3">
                                             <MailX className="size-10" />
                                         </div>
                                         <motion.div
@@ -172,10 +204,10 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
                                     </div>
 
                                     <div className="space-y-4">
-                                        <h2 className="text-4xl lg:text-5xl font-black text-slate-900 leading-tight uppercase tracking-tighter">
+                                        <h2 className="text-2xl lg:text-xl font-semibold text-text-main leading-tight uppercase tracking-tight">
                                             {t.emotion}
                                         </h2>
-                                        <p className="text-slate-500 text-lg font-medium leading-relaxed max-w-md mx-auto">
+                                        <p className="text-text-muted text-lg font-medium leading-relaxed max-w-md mx-auto">
                                             {t.message}
                                         </p>
                                     </div>
@@ -183,12 +215,12 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
                                     <div className="pt-6 flex flex-col items-center gap-6">
                                         <Link
                                             to="/"
-                                            className="group flex items-center gap-3 px-12 py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-[11px] hover:shadow-2xl hover:scale-105 active:scale-95 transition-all w-full sm:w-auto border border-slate-800"
+                                            className="group flex items-center gap-3 px-12 py-5 bg-secondary text-white rounded-[2rem] font-semibold uppercase tracking-wide text-xs hover:shadow-2xl hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
                                         >
                                             <Home className="size-4 text-primary" />
                                             {t.back_home}
                                         </Link>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted opacity-50">
                                             {t.stay_connected}
                                         </p>
                                     </div>
@@ -202,18 +234,18 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
                                     animate={{ opacity: 1, scale: 1 }}
                                     className="space-y-10"
                                 >
-                                    <div className="size-24 rounded-[2.5rem] bg-rose-50 text-rose-500 flex items-center justify-center mx-auto shadow-xl shadow-rose-100/50">
+                                    <div className="size-24 rounded-[2.5rem] bg-rose-50 text-rose-500 flex items-center justify-center mx-auto shadow-xl">
                                         <AlertCircle className="size-12" />
                                     </div>
                                     <div className="space-y-4">
-                                        <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">{status === 'error' ? t.error : t.invalid}</h2>
-                                        <p className="text-slate-500 font-medium max-w-sm mx-auto">
+                                        <h2 className="text-xl font-semibold text-text-main uppercase tracking-tight">{status === 'error' ? t.error : t.invalid}</h2>
+                                        <p className="text-text-muted font-medium max-w-sm mx-auto">
                                             {status === 'error' ? t.error_detailed : t.invalid_detailed}
                                         </p>
                                     </div>
                                     <Link
                                         to="/"
-                                        className="inline-flex items-center gap-3 px-10 py-5 bg-slate-100 text-slate-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-900 hover:text-white transition-all border border-transparent hover:border-slate-800"
+                                        className="inline-flex items-center gap-3 px-10 py-5 bg-gray-100 text-text-muted rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-secondary hover:text-white transition-all"
                                     >
                                         <MoveLeft className="size-4" />
                                         {t.back_home}
@@ -223,10 +255,10 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
                         </AnimatePresence>
                     </div>
 
-                    <div className="bg-slate-50/50 p-8 border-t border-slate-50 flex items-center justify-center gap-8">
+                    <div className="bg-bg-surface p-8 border-t border-border-main flex items-center justify-center gap-8">
                         <div className="flex items-center gap-2 opacity-30 grayscale hover:opacity-100 hover:grayscale-0 transition-all cursor-default">
                             <Sparkles className="size-4 text-primary" />
-                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Nordic Sauna Map digital Archive</span>
+                            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-text-muted">Suomiportaat Project Platform</span>
                         </div>
                     </div>
                 </motion.div>

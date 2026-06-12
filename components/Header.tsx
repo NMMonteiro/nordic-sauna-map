@@ -1,9 +1,9 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User } from '@supabase/supabase-js';
+import { auth } from '../lib/firebase';
+import { User as FirebaseUser } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Profile, LanguageCode } from '../types';
-import { supabase } from '../supabaseClient';
+import { Profile, LanguageCode, BrandingPreferences } from '../types';
 import { cn } from '../lib/utils';
 import {
     User as UserIcon,
@@ -15,14 +15,16 @@ import {
     Menu,
     X,
     LayoutDashboard,
-    PlusCircle
+    ArrowUpRight
 } from 'lucide-react';
+import { useTranslation } from '../contexts/TranslationContext';
 
 interface HeaderProps {
     lang: LanguageCode;
     setLang: (lang: LanguageCode) => void;
-    user: User | null;
+    user: FirebaseUser | null;
     profile: Profile | null;
+    branding?: BrandingPreferences;
     isMenuOpen: boolean;
     setIsMenuOpen: (open: boolean) => void;
     setShowAuthModal: (show: boolean) => void;
@@ -39,380 +41,290 @@ export const Header = ({
     setIsMenuOpen,
     setShowAuthModal,
     setShowAdminPanel,
-    setShowUserPanel
+    setShowUserPanel,
+    branding
 }: HeaderProps) => {
+    const handleLogout = async () => {
+        try {
+            await auth.signOut();
+            window.location.reload();
+        } catch (err) {
+            console.error('Logout failed:', err);
+        }
+    };
+
     const location = useLocation();
-    const [scrolled, setScrolled] = useState(false);
-    const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+    const [isWindowScrolled, setIsWindowScrolled] = useState(false);
+    const [isLangOpen, setIsLangOpen] = useState(false);
 
     useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 20);
+        const handleScroll = () => setIsWindowScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const translations = {
-        en: {
-            saunas: "The Sauna Map",
-            education: "Education",
-            about: "About",
-            signIn: "Sign In",
-            news: "News",
-            blog: "Blog",
-            ourProject: "Our Project",
-            partners: "Partners",
-            lessonPlans: "Lesson Plans",
-            dashboard: "Dashboard",
-            settings: "Settings",
-            signOut: "Sign Out",
-            admin: "Admin Console"
-        },
-        sv: {
-            saunas: "Bastukartan",
-            education: "Utbildning",
-            about: "Om oss",
-            signIn: "Logga in",
-            news: "Nyheter",
-            blog: "Blogg",
-            ourProject: "Vårt projekt",
-            partners: "Partnerinformation",
-            lessonPlans: "Lektionsplaner",
-            dashboard: "Dashboard",
-            settings: "Inställningar",
-            signOut: "Logga ut",
-            admin: "Adminpanel"
-        },
-        fi: {
-            saunas: "Saunakartta",
-            education: "Koulutus",
-            about: "Tietoa",
-            signIn: "Kirjaudu",
-            news: "Uutiset",
-            blog: "Blogi",
-            ourProject: "Projektimme",
-            partners: "Partneritiedot",
-            lessonPlans: "Oppituntisuunnitelmat",
-            dashboard: "Hallintapaneeli",
-            settings: "Asetukset",
-            signOut: "Kirjaudu ulos",
-            admin: "Admin-paneeli"
-        }
-    };
+    // Force "scrolled" look (solid bg, dark text) on all pages except home
+    const scrolled = isWindowScrolled || location.pathname !== '/';
 
-    const t = translations[lang];
-
-    const NavLink = ({ to, children, className = "" }: { to: string, children: ReactNode, className?: string }) => (
-        <Link
-            to={to}
-            className={cn(
-                "relative text-sm font-semibold text-slate-600 transition-all duration-300 hover:text-primary group py-2",
-                location.pathname === to && "text-primary",
-                className
-            )}
-            onClick={() => setIsMenuOpen(false)}
-        >
-            {children}
-            <span className={cn(
-                "absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full",
-                location.pathname === to && "w-full"
-            )} />
-        </Link>
-    );
-
-    const isHomePage = location.pathname === '/';
-    const forceLightHeader = !isHomePage;
-    const isHeaderActive = scrolled || isMenuOpen || forceLightHeader;
+    const { t } = useTranslation();
 
     return (
         <header
             className={cn(
-                "fixed top-0 left-0 right-0 z-[10000] transition-all duration-500",
-                isHeaderActive
-                    ? "bg-white dark:bg-slate-950 border-b border-slate-200/50 dark:border-slate-800/50 py-3 shadow-sm"
-                    : "bg-transparent py-6"
+                "fixed left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[1400px] transition-all duration-700 z-[1030]",
+                scrolled
+                    ? "top-4 bg-bg-surface/80 backdrop-blur-2xl py-3 rounded-full border border-border-main/50 shadow-2xl"
+                    : "top-6 bg-black/10 backdrop-blur-md py-5 rounded-[2rem] border border-white/5"
             )}
         >
-            <div className="max-w-[1440px] mx-auto grid grid-cols-2 lg:grid-cols-3 items-center px-6 md:px-12">
-                {/* Left: Logo */}
-                <div className="flex justify-start items-center gap-10">
-                    <Link
-                        className="flex items-center gap-3 group"
-                        to="/"
-                        onClick={() => setIsMenuOpen(false)}
-                    >
-                        <div className="relative">
-                            <img src="/logo.png" className="size-9 object-contain transition-transform duration-500 group-hover:rotate-[360deg]" alt="Logo" />
-                        </div>
-                        <h2 className={cn(
-                            "text-lg md:text-xl font-black tracking-tight uppercase transition-colors duration-500 flex flex-col sm:flex-row sm:items-center h-9 sm:h-auto justify-between sm:justify-start sm:gap-1 leading-none sm:leading-tight",
-                            isHeaderActive ? "text-slate-900 dark:text-white" : "text-white"
-                        )}>
-                            <span>Nordic</span>
-                            <span className="text-primary italic">Sauna</span>
-                        </h2>
-                    </Link>
-                </div>
-
-                {/* Center: Nav (Desktop only) */}
-                <nav className="hidden lg:flex items-center justify-center gap-8">
-                    {/* Discovery Dropdown */}
-                    <div className="relative group py-2">
-                        <button className={cn(
-                            "flex items-center gap-1 text-sm font-semibold transition-all duration-300 group-hover:text-primary",
-                            isHeaderActive ? "text-slate-600 dark:text-slate-300" : "text-white/80"
-                        )}>
-                            Discovery <ChevronDown className="size-4 group-hover:rotate-180 transition-transform duration-300" />
-                        </button>
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 opacity-0 translate-y-4 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 ease-out">
-                            <div className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none rounded-2xl p-2 min-w-[220px] overflow-hidden">
-                                <Link to="/news" className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors text-sm font-medium text-slate-700 dark:text-slate-200">
-                                    <div className="size-8 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center">
-                                        <Globe className="size-4" />
-                                    </div>
-                                    {t.news}
-                                </Link>
-                                <Link to="/blog" className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors text-sm font-medium text-slate-700 dark:text-slate-200">
-                                    <div className="size-8 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg flex items-center justify-center">
-                                        <LayoutDashboard className="size-4" />
-                                    </div>
-                                    {t.blog}
-                                </Link>
-                            </div>
-                        </div>
+            <div className="max-w-[1440px] mx-auto px-6 md:px-12 flex justify-between items-center relative">
+                {/* Logo Section */}
+                <Link
+                    className="flex items-center gap-3 group relative z-50 mr-8"
+                    to="/"
+                    onClick={() => setIsMenuOpen(false)}
+                >
+                    <div className="relative">
+                        {branding?.logoUrl ? (
+                            <img
+                                src={branding.logoUrl}
+                                className="object-contain transition-all duration-300"
+                                style={{ height: branding.logoSize ? `${branding.logoSize}px` : '40px', width: 'auto' }}
+                                alt="Logo"
+                            />
+                        ) : (
+                            <img src="/logo.png" className="object-contain" style={{ height: branding?.logoSize ? `${branding.logoSize}px` : '40px', width: 'auto' }} alt="Logo" />
+                        )}
                     </div>
-
-                    <NavLink to="/education" className={isHeaderActive ? "" : "text-white/80"}>{t.lessonPlans}</NavLink>
-
-                    {/* About Dropdown */}
-                    <div className="relative group py-2">
-                        <button className={cn(
-                            "flex items-center gap-1 text-sm font-semibold transition-all duration-300 group-hover:text-primary",
-                            isHeaderActive ? "text-slate-600 dark:text-slate-300" : "text-white/80"
+                    <div>
+                        <span className={cn(
+                            "font-display font-semibold tracking-tight uppercase text-xl leading-none transition-colors duration-500 block",
+                            scrolled ? "text-text-main" : "text-white"
                         )}>
-                            {t.about} <ChevronDown className="size-4 group-hover:rotate-180 transition-transform duration-300" />
-                        </button>
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 opacity-0 translate-y-4 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 ease-out">
-                            <div className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none rounded-2xl p-2 min-w-[220px] overflow-hidden">
-                                <Link to="/about" className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors text-sm font-medium text-slate-700 dark:text-slate-200 block">{t.ourProject}</Link>
-                                <Link to="/partners" className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors text-sm font-medium text-slate-700 dark:text-slate-200 block">{t.partners}</Link>
-                            </div>
-                        </div>
+                            {branding?.siteName || "Suomiportaat"}
+                        </span>
+                        {branding?.siteTagline && (
+                            <span className={cn(
+                                "font-medium text-xs tracking-wide uppercase block mt-1 transition-colors duration-500",
+                                scrolled ? "text-text-muted" : "text-white/60"
+                            )}>
+                                {branding.siteTagline}
+                            </span>
+                        )}
                     </div>
+                </Link>
+
+                {/* Desktop Navigation - Centered */}
+                <nav className="hidden lg:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+                    {[
+                        { path: '/', label: t.home },
+                        { path: '/education', label: t.education },
+                        { path: '/workshops', label: t.workshops },
+                        { path: '/news', label: t.news },
+                        { path: '/blog', label: t.blog },
+                        { path: '/about', label: t.about },
+                        { path: '/partners', label: t.partners }
+                    ].map((item) => (
+                        <Link
+                            key={item.path}
+                            to={item.path}
+                            className={cn(
+                                "text-[13px] font-semibold uppercase tracking-wide transition-colors duration-500 hover:text-primary relative group",
+                                scrolled ? "text-text-main" : "text-white"
+                            )}
+                        >
+                            {item.label}
+                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full" />
+                        </Link>
+                    ))}
                 </nav>
 
-                {/* Right: Actions */}
-                <div className="flex items-center justify-end gap-4">
-                    {/* Language Switcher (Desktop only) */}
-                    <div className="hidden lg:flex items-center bg-slate-100/50 dark:bg-slate-800/50 rounded-full border border-slate-200/20 dark:border-slate-700/50 p-1">
-                        {['sv', 'fi', 'en'].map(l => (
-                            <button
-                                key={l}
-                                onClick={() => setLang(l as any)}
-                                className={cn(
-                                    "px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-all",
-                                    lang === l
-                                        ? "bg-white text-primary shadow-sm"
-                                        : isHeaderActive ? "text-slate-500 hover:text-slate-900" : "text-white/60 hover:text-white"
-                                )}
-                            >
-                                {l}
-                            </button>
-                        ))}
-                    </div>
+                {/* Right Actions */}
+                <div className="flex items-center gap-6">
+                    <div className="hidden lg:flex items-center gap-6">
+                        <Link to="/contact" className={cn("text-xs font-medium uppercase tracking-wide hover:text-primary transition-colors", scrolled ? "text-text-muted" : "text-white/80")}>{t.contact}</Link>
 
-                    <div className="flex items-center gap-3">
+                        <div className={cn("h-4 w-px opacity-20", scrolled ? "bg-text-main" : "bg-white")} />
+
+                        <div className="relative z-50">
+                            <button
+                                onClick={() => setIsLangOpen(!isLangOpen)}
+                                className={cn("flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide hover:text-primary transition-colors", scrolled ? "text-text-muted" : "text-white/80")}
+                            >
+                                <Globe className="size-5" /> {t.languages}
+                            </button>
+                            <AnimatePresence>
+                                {isLangOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                        className="absolute top-full right-0 pt-4"
+                                    >
+                                        <div className="bg-bg-card rounded-xl shadow-2xl p-2 min-w-[140px] flex flex-col gap-1 border border-border-main ring-1 ring-black/5">
+                                            {[
+                                                { code: 'en', label: 'English' },
+                                                { code: 'sv', label: 'Svenska' },
+                                                { code: 'fi', label: 'Suomi' },
+                                                { code: 'ar', label: 'العربية' },
+                                                { code: 'uk', label: 'Українська' }
+                                            ].map((l) => (
+                                                <button
+                                                    key={l.code}
+                                                    onClick={() => {
+                                                        setLang(l.code as LanguageCode);
+                                                        setIsLangOpen(false);
+                                                    }}
+                                                    className={cn(
+                                                        "text-left px-4 py-2 rounded-lg text-xs font-medium transition-colors",
+                                                        lang === l.code ? "bg-primary/10 text-primary" : "text-text-muted hover:bg-bg-surface"
+                                                    )}
+                                                >
+                                                    {l.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
                         {user ? (
-                            <div className="relative">
-                                <button
-                                    onMouseEnter={() => setUserDropdownOpen(true)}
-                                    onClick={() => setShowUserPanel(true)}
-                                    className={cn(
-                                        "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 group",
-                                        isHeaderActive
-                                            ? "bg-slate-50 border-slate-200 hover:border-primary/30"
-                                            : "bg-white/10 border-white/20 hover:bg-white/20"
-                                    )}
-                                >
-                                    <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden border border-primary/20">
-                                        {(profile as any)?.avatar_url ? (
-                                            <img src={(profile as any).avatar_url} className="w-full h-full object-cover" alt="" />
-                                        ) : (
-                                            <UserIcon className="size-4" />
-                                        )}
+                            <div className="relative group ml-2">
+                                <button className="flex items-center gap-2 outline-none">
+                                    <div className={cn(
+                                        "size-9 rounded-full flex items-center justify-center text-xs font-semibold uppercase border-2 transition-all hover:scale-105",
+                                        scrolled ? "bg-bg-surface border-border-main text-text-main" : "bg-white/10 border-white/20 text-white"
+                                    )}>
+                                        {profile?.full_name?.[0] || user.email?.[0] || 'U'}
                                     </div>
-                                    <div className="hidden md:block text-left">
-                                        <p className={cn(
-                                            "text-[10px] font-bold uppercase tracking-widest leading-none mb-0.5",
-                                            isHeaderActive ? "text-slate-400" : "text-white/50"
-                                        )}>Member</p>
-                                        <p className={cn(
-                                            "text-[11px] font-bold truncate max-w-[100px]",
-                                            isHeaderActive ? "text-slate-900" : "text-white"
-                                        )}>{profile?.full_name?.split(' ')[0] || user.email?.split('@')[0]}</p>
-                                    </div>
-                                    <ChevronDown className={cn(
-                                        "size-3 transition-transform duration-300 group-hover:rotate-180",
-                                        isHeaderActive ? "text-slate-400" : "text-white/50"
-                                    )} />
                                 </button>
 
-                                {/* User Quick Action Dropdown */}
-                                <AnimatePresence>
-                                    {userDropdownOpen && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: 10 }}
-                                            onMouseLeave={() => setUserDropdownOpen(false)}
-                                            className="absolute top-full right-0 pt-3 w-[260px] pointer-events-auto"
+                                {/* User Dropdown */}
+                                <div className="absolute top-full right-0 pt-4 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 transform origin-top-right">
+                                    <div className="bg-bg-card rounded-2xl shadow-2xl shadow-black/10 border border-border-main overflow-hidden min-w-[220px] p-2 ring-1 ring-black/5">
+                                        <div className="px-4 py-3 border-b border-border-main/50 mb-1">
+                                            <p className="text-sm font-medium text-text-main truncate max-w-[180px]">{profile?.full_name || "User"}</p>
+                                            <p className="text-xs text-text-muted truncate max-w-[180px] font-medium">{user.email}</p>
+                                        </div>
+
+                                        {(profile?.role === 'admin' || profile?.role === 'super_admin' || user.email === 'nunommonteiro1972@gmail.com') && (
+                                            <button
+                                                onClick={() => setShowAdminPanel(true)}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-text-muted hover:text-primary hover:bg-bg-surface rounded-xl transition-all text-left group/item"
+                                            >
+                                                <div className="size-6 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover/item:bg-primary group-hover/item:text-white transition-colors">
+                                                    <ShieldCheck className="size-3.5" />
+                                                </div>
+                                                {t.admin}
+                                            </button>
+                                        )}
+
+                                        <button
+                                            onClick={() => setShowUserPanel(true)}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-text-muted hover:text-primary hover:bg-bg-surface rounded-xl transition-all text-left group/item"
                                         >
-                                            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-2xl rounded-2xl p-3 overflow-hidden">
-                                                <div className="px-3 py-2 mb-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                                                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{profile?.full_name || user.email}</p>
-                                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 tracking-tight">{user.email}</p>
-                                                </div>
-
-                                                <button
-                                                    onClick={() => { setShowUserPanel(true); setUserDropdownOpen(false); }}
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-primary/5 dark:hover:bg-primary/10 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold transition-all group"
-                                                >
-                                                    <LayoutDashboard className="size-4 text-slate-400 group-hover:text-primary transition-colors" />
-                                                    {t.dashboard}
-                                                </button>
-
-                                                {profile?.role === 'admin' && (
-                                                    <button
-                                                        onClick={() => { setShowAdminPanel(true); setUserDropdownOpen(false); }}
-                                                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-950 dark:hover:bg-slate-950/50 text-slate-700 dark:text-slate-300 hover:text-white rounded-xl text-sm font-semibold transition-all group"
-                                                    >
-                                                        <ShieldCheck className="size-4 text-slate-400 group-hover:text-white transition-colors" />
-                                                        {t.admin}
-                                                    </button>
-                                                )}
-
-                                                <button
-                                                    onClick={() => { setShowUserPanel(true); setUserDropdownOpen(false); }}
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold transition-all group"
-                                                >
-                                                    <Settings className="size-4 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
-                                                    {t.settings}
-                                                </button>
-
-                                                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                                    <button
-                                                        onClick={() => supabase.auth.signOut()}
-                                                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 text-red-600 rounded-xl text-sm font-bold transition-all group"
-                                                    >
-                                                        <LogOut className="size-4" />
-                                                        {t.signOut}
-                                                    </button>
-                                                </div>
+                                            <div className="size-6 rounded-lg bg-bg-surface flex items-center justify-center text-text-muted group-hover/item:bg-border-main transition-colors">
+                                                <UserIcon className="size-3.5" />
                                             </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                            {t.profile}
+                                        </button>
+
+                                        <div className="h-px bg-border-main/50 my-1" />
+
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-red-500 hover:bg-red-50 rounded-xl transition-all text-left"
+                                        >
+                                            <LogOut className="size-3.5" />
+                                            {t.signOut}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <button
                                 onClick={() => setShowAuthModal(true)}
                                 className={cn(
-                                    "relative overflow-hidden px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 group shadow-lg active:scale-95",
-                                    isHeaderActive
-                                        ? "bg-primary text-white shadow-primary/20"
-                                        : "bg-white text-slate-900 shadow-white/10"
+                                    "ml-4 px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wide transition-all hover:scale-105 active:scale-95",
+                                    scrolled ? "bg-text-main text-bg-surface hover:bg-primary shadow-lg shadow-black/10" : "bg-white text-black hover:bg-white/90 shadow-lg shadow-black/10"
                                 )}
                             >
-                                <span className="relative z-10">{t.signIn}</span>
-                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                                {t.signIn}
                             </button>
                         )}
-
-                        <button
-                            onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className={cn(
-                                "lg:hidden size-11 flex items-center justify-center rounded-full transition-all duration-300",
-                                isHeaderActive ? "bg-slate-100 text-slate-900" : "bg-white/10 text-white"
-                            )}
-                        >
-                            {isMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-                        </button>
                     </div>
+
+                    {/* Mobile Menu Toggle */}
+                    <button
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className={cn(
+                            "lg:hidden size-10 flex items-center justify-center rounded-xl shadow-lg transition-colors",
+                            scrolled ? "bg-text-main text-bg-surface" : "bg-white text-black"
+                        )}
+                    >
+                        {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                    </button>
                 </div>
             </div>
 
-            {/* Mobile Navigation Overlay */}
+            {/* Mobile Nav Overlay */}
             <AnimatePresence>
                 {isMenuOpen && (
                     <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="lg:hidden bg-white dark:bg-slate-950 w-full border-t border-slate-100 dark:border-slate-800 overflow-hidden"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="lg:hidden absolute top-full left-0 w-full bg-bg-surface border-b border-border-main p-8 shadow-2xl overflow-hidden"
                     >
-                        <div className="flex flex-col p-8 space-y-8 max-h-[80vh] overflow-y-auto">
-                            <nav className="flex flex-col space-y-4">
-                                <NavLink to="/" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.saunas}</NavLink>
-                                <NavLink to="/education" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.education}</NavLink>
-                                <NavLink to="/news" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.news}</NavLink>
-                                <NavLink to="/blog" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.blog}</NavLink>
-                                <NavLink to="/about" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.about}</NavLink>
-                            </nav>
-
-                            <div className="h-px bg-slate-100" />
-
-                            <div className="pt-4 space-y-4">
-                                <div className="flex flex-col gap-3">
-                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]">Select Language</label>
-                                    <div className="flex items-center bg-slate-100 dark:bg-slate-900 rounded-2xl p-1.5 flex-wrap">
-                                        {['sv', 'fi', 'en'].map(l => (
-                                            <button
-                                                key={l}
-                                                onClick={() => setLang(l as any)}
-                                                className={cn(
-                                                    "flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all",
-                                                    lang === l
-                                                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm"
-                                                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                                                )}
-                                            >
-                                                {l}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="h-px bg-slate-100 dark:bg-slate-800" />
-
-                                {!user ? (
-                                    <button
-                                        onClick={() => { setShowAuthModal(true); setIsMenuOpen(false); }}
-                                        className="w-full py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 active:scale-[0.98] transition-transform"
-                                    >
-                                        {t.signIn}
-                                    </button>
-                                ) : (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button
-                                            onClick={() => { setShowUserPanel(true); setIsMenuOpen(false); }}
-                                            className="flex flex-col items-center gap-2 p-4 bg-slate-50 rounded-2xl"
-                                        >
-                                            <LayoutDashboard className="size-6 text-primary" />
-                                            <span className="text-[10px] font-black uppercase tracking-widest">{t.dashboard}</span>
-                                        </button>
-                                        <button
-                                            onClick={() => supabase.auth.signOut()}
-                                            className="flex flex-col items-center gap-2 p-4 bg-red-50 rounded-2xl"
-                                        >
-                                            <LogOut className="size-6 text-red-500" />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-red-500">{t.signOut}</span>
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        <nav className="flex flex-col gap-6 font-display text-2xl uppercase tracking-tight">
+                            {[
+                                { path: '/', label: t.home },
+                                { path: '/education', label: t.education },
+                                { path: '/workshops', label: t.workshops },
+                                { path: '/news', label: t.news },
+                                { path: '/blog', label: t.blog },
+                                { path: '/about', label: t.about },
+                                { path: '/partners', label: t.partners }
+                            ].map((item) => (
+                                <Link
+                                    key={item.path}
+                                    to={item.path}
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="hover:text-primary transition-colors hover:translate-x-2 inline-block duration-300"
+                                >
+                                    {item.label}
+                                </Link>
+                            ))}
+                        </nav>
+                        {user && (profile?.role === 'admin' || profile?.role === 'super_admin' || user.email === 'nunommonteiro1972@gmail.com') && (
+                            <button
+                                onClick={() => { setShowAdminPanel(true); setIsMenuOpen(false); }}
+                                className="mt-8 flex items-center gap-2 text-sm font-medium text-primary uppercase tracking-wide"
+                            >
+                                <ShieldCheck className="size-4" />
+                                {t.admin}
+                            </button>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
         </header>
     );
 };
+
+const NavDropdown = ({ label }: { label: string }) => (
+    <div className="group relative py-2">
+        <button className="flex items-center gap-1.5 text-sm font-semibold text-text-main transition-colors group-hover:text-primary">
+            {label} <ChevronDown className="size-4 group-hover:rotate-180 transition-transform duration-300" />
+        </button>
+        {/* Simplified dropdown for visual match */}
+        <div className="absolute top-full left-0 pt-2 opacity-0 -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300">
+            <div className="bg-bg-card border border-border-main min-w-[200px] p-2">
+                <Link to="#" className="block px-4 py-2 hover:bg-bg-surface text-xs font-medium">Overview</Link>
+                <Link to="#" className="block px-4 py-2 hover:bg-bg-surface text-xs font-medium">Schedule</Link>
+            </div>
+        </div>
+    </div>
+);
+

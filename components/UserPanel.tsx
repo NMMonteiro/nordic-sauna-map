@@ -1,7 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
-import { Profile, Sauna } from '../types';
-import { User } from '@supabase/supabase-js';
+import { auth, db } from '../lib/firebase';
+import { User as FirebaseUser } from 'firebase/auth';
+import {
+    collection,
+    query,
+    where,
+    getDocs,
+    orderBy,
+    doc,
+    updateDoc,
+    deleteDoc,
+    getDoc,
+    limit,
+    getCountFromServer
+} from 'firebase/firestore';
+import { Profile, ContentItem, LanguageCode } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EditArchiveModal } from './EditArchiveModal';
 import { EducationManager } from './EducationManager';
@@ -29,17 +42,18 @@ import {
     ShieldCheck
 } from 'lucide-react';
 
+
 interface UserPanelProps {
     onClose: () => void;
-    lang: 'sv' | 'fi' | 'en';
-    user: User;
+    lang: LanguageCode;
+    user: FirebaseUser;
     profile: Profile | null;
-    onAddSauna: () => void;
     onUpdate?: () => void;
     theme: 'light' | 'dark';
     setTheme: (theme: 'light' | 'dark') => void;
-    setLang: (lang: 'sv' | 'fi' | 'en') => void;
+    setLang: (lang: LanguageCode) => void;
 }
+
 
 type UserTab = 'overview' | 'submissions' | 'education' | 'blog' | 'settings';
 
@@ -48,91 +62,138 @@ export const UserPanel: React.FC<UserPanelProps> = ({
     lang,
     user,
     profile,
-    onAddSauna,
     onUpdate,
     theme,
     setTheme,
     setLang
 }) => {
     const [activeTab, setActiveTab] = useState<UserTab>('overview');
-    const [mySaunas, setMySaunas] = useState<Sauna[]>([]);
-    const [editingSauna, setEditingSauna] = useState<Sauna | null>(null);
+    const [myItems, setMyItems] = useState<any[]>([]);
+    const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
+
     const [materials, setMaterials] = useState<any[]>([]);
     const [myPosts, setMyPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setSidebarOpen] = useState(false);
 
-    const t = {
+    const translations = {
         en: {
             overview: 'Overview',
-            submissions: 'Sauna Submissions',
+            submissions: 'My Contributions',
             settings: 'Profile & Security',
-            submit: 'Add Sauna',
-            back: 'Back to Map',
+            submit: 'Add Entry',
+            back: 'Back to Site',
             acc_status: 'Account Status',
-            verified: 'Verified Contributor',
+            verified: 'Verified Member',
             pending: 'Review Pending',
             submitted: 'Total Sent',
-            approved: 'Live Heritage',
-            views: 'Global Reach',
+            approved: 'Live Content',
+            views: 'Total Views',
             profile_settings: 'Personal Information',
             name: 'Display Name',
             email: 'Primary Email',
             locked: 'Contact support to change core identity details.',
-            no_contrib: 'Your archive is empty.',
+            no_contrib: 'Your contribution list is empty.',
             edit: 'Manage',
-            member: 'Heritage Member',
+            member: 'Project Member',
             contributor: 'Active Contributor',
-            education: 'Educational Assets',
-            blog: 'Cultural Stories'
+            education: 'Learning Hub',
+            blog: 'Workshop Blog'
         },
         sv: {
             overview: 'Översikt',
-            submissions: 'Mina bastubidrag',
+            submissions: 'Mina bidrag',
             settings: 'Inställningar',
-            submit: 'Lägg till bastu',
-            back: 'Tillbaka till kartan',
+            submit: 'Lägg till bidrag',
+            back: 'Tillbaka till sidan',
             acc_status: 'Kontostatus',
-            verified: 'Verifierad bidragsgivare',
+            verified: 'Verifierad medlem',
             pending: 'Väntar på granskning',
             submitted: 'Inskickade',
-            approved: 'Live-arkiv',
-            views: 'Global kännedom',
+            approved: 'Live-innehåll',
+            views: 'Totala visningar',
             profile_settings: 'Profiluppgifter',
             name: 'Visa namn',
             email: 'E-postadress',
-            locked: 'Kontakta ylläpito för att ändra identitetsuppgifter.',
+            locked: 'Kontakta support för att ändra identitetsuppgifter.',
             no_contrib: 'Inga bidrag ännu',
             edit: 'Hantera',
-            member: 'Medlem',
+            member: 'Projektmedlem',
             contributor: 'Bidragsgivare',
-            education: 'Pedagogiska resurser',
-            blog: 'Mina berättelser'
+            education: 'Lärcenter',
+            blog: 'Workshop-blogg'
         },
         fi: {
             overview: 'Yleiskatsaus',
-            submissions: 'Saunalähetykset',
+            submissions: 'Omat osallistumiset',
             settings: 'Asetukset',
-            submit: 'Lisää sauna',
-            back: 'Takaisin kartalle',
+            submit: 'Lisää sisältöä',
+            back: 'Takaisin sivustolle',
             acc_status: 'Tilin tila',
-            verified: 'Vahvistettu avustaja',
+            verified: 'Vahvistettu jäsen',
             pending: 'Odottaa tarkistusta',
             submitted: 'Lähetetty',
-            approved: 'Live-kulttuuriperintö',
-            views: 'Maailmanlaajuinen tavoittavuus',
+            approved: 'Julkaistu sisältö',
+            views: 'Katselukerrat',
             profile_settings: 'Henkilökohtaiset tiedot',
             name: 'Näyttönimi',
             email: 'Ensisijainen sähköposti',
             locked: 'Ota yhteyttä tukeen muuttaaksesi tunnistetietoja.',
-            no_contrib: 'Arkistosi on tyhjä.',
+            no_contrib: 'Luettelosi on tyhjä.',
             edit: 'Hallinnoi',
-            member: 'Kulttuuriperinnön jäsen',
+            member: 'Projektin jäsen',
             contributor: 'Aktiivinen avustaja',
-            education: 'Opetusvarat',
-            blog: 'Kulttuuritarinat'
+            education: 'Oppimiskeskus',
+            blog: 'Työpajablogi'
+        },
+        ar: {
+            overview: 'نظرة عامة',
+            submissions: 'مساهماتي',
+            settings: 'الإعدادات',
+            submit: 'إضافة مدخلة',
+            back: 'العودة للموقع',
+            acc_status: 'حالة الحساب',
+            verified: 'عضو موثوق',
+            pending: 'قيد المراجعة',
+            submitted: 'تم الإرسال',
+            approved: 'متاح للجمهور',
+            views: 'إجمالي المشاهدات',
+            profile_settings: 'البيانات الشخصية',
+            name: 'اسم العرض',
+            email: 'البريد الإلكتروني',
+            locked: 'تحرير الهوية مقيد.',
+            no_contrib: 'قائمة المساهمات فارغة.',
+            edit: 'إدارة',
+            member: 'عضو المشروع',
+            contributor: 'مساهم نشط',
+            education: 'مركز التعلم',
+            blog: 'مدونة ورش العمل'
+        },
+        uk: {
+            overview: 'Огляд',
+            submissions: 'Мої внески',
+            settings: 'Налаштування',
+            submit: 'Додати запис',
+            back: 'На сайт',
+            acc_status: 'Статус акаунту',
+            verified: 'Перевірений учасник',
+            pending: 'Очікує перевірки',
+            submitted: 'Надіслано',
+            approved: 'Опубліковано',
+            views: 'Перегляди',
+            profile_settings: 'Персональні дані',
+            name: 'Ім\'я користувача',
+            email: 'Електронна пошта',
+            locked: 'Редагування обмежено.',
+            no_contrib: 'Внесків немає.',
+            edit: 'Керувати',
+            member: 'Учасник проекту',
+            contributor: 'Активний дописувач',
+            education: 'Навчальний центр',
+            blog: 'Блог воркшопів'
         }
-    }[lang];
+    };
+    const t = translations[lang] || translations.en;
 
     const [stats, setStats] = useState({
         totalSubmissions: 0,
@@ -140,7 +201,7 @@ export const UserPanel: React.FC<UserPanelProps> = ({
         totalViews: 0
     });
 
-    const logoUrl = "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/images/Favicon.png";
+    const logoUrl = "https://placehold.co/200x200/4FC3F7/0F172A?text=PORTAL";
 
     useEffect(() => {
         fetchUserData();
@@ -149,37 +210,39 @@ export const UserPanel: React.FC<UserPanelProps> = ({
     const fetchUserData = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('saunas')
-                .select('*')
-                .eq('created_by', user.id)
-                .order('created_at', { ascending: false });
+            // Archives (previously saunas)
+            const archivesQuery = query(
+                collection(db, 'archives'),
+                where('created_by', '==', user.uid),
+                orderBy('created_at', 'desc')
+            );
+            const archivesSnap = await getDocs(archivesQuery);
+            const archivesData = archivesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            if (!error && data) {
-                const subData = data as Sauna[];
-                setMySaunas(subData);
-                setStats({
-                    totalSubmissions: subData.length,
-                    approvedSubmissions: subData.filter(s => s.status === 'approved').length,
-                    totalViews: subData.reduce((acc, curr) => acc + (curr.views || 0), 0)
-                });
-            }
+            setMyItems(archivesData);
+            setStats({
+                totalSubmissions: archivesData.length,
+                approvedSubmissions: archivesData.filter((s: any) => s.status === 'approved').length,
+                totalViews: archivesData.reduce((acc, curr: any) => acc + (curr.views || 0), 0)
+            });
 
-            const { data: matData } = await supabase
-                .from('learning_materials')
-                .select('*')
-                .eq('created_by', user.id)
-                .order('created_at', { ascending: false });
+            // Materials
+            const materialsQuery = query(
+                collection(db, 'materials'),
+                where('created_by', '==', user.uid),
+                orderBy('created_at', 'desc')
+            );
+            const materialsSnap = await getDocs(materialsQuery);
+            setMaterials(materialsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-            if (matData) setMaterials(matData);
-
-            const { data: postData } = await supabase
-                .from('blog_posts')
-                .select('*')
-                .eq('author_id', user.id)
-                .order('created_at', { ascending: false });
-
-            if (postData) setMyPosts(postData);
+            // Blog Posts
+            const postsQuery = query(
+                collection(db, 'blog_posts'),
+                where('author_id', '==', user.uid),
+                orderBy('created_at', 'desc')
+            );
+            const postsSnap = await getDocs(postsQuery);
+            setMyPosts(postsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
         } catch (err) {
             console.error('Fetch User Data Error:', err);
@@ -190,8 +253,7 @@ export const UserPanel: React.FC<UserPanelProps> = ({
     const deleteSauna = async (saunaId: string) => {
         if (!confirm('Are you sure you want to permanently delete this contribution?')) return;
         try {
-            const { error } = await supabase.from('saunas').delete().eq('id', saunaId);
-            if (error) throw error;
+            await deleteDoc(doc(db, 'archives', saunaId));
             if (onUpdate) onUpdate();
             fetchUserData();
         } catch (err: any) {
@@ -199,42 +261,32 @@ export const UserPanel: React.FC<UserPanelProps> = ({
         }
     };
 
-    const saveSaunaEdit = async (sauna: Sauna) => {
-        const { id, ...updateData } = sauna;
-        const { error } = await supabase
-            .from('saunas')
-            .update({
+    const saveItemEdit = async (item: ContentItem) => {
+        const { id, ...updateData } = item;
+        if (!id) return;
+
+        try {
+            await updateDoc(doc(db, 'archives', id), {
                 ...updateData,
                 status: 'pending_approval',
                 updated_at: new Date().toISOString()
-            })
-            .eq('id', id);
-
-        if (error) {
-            alert(error.message);
-        } else {
-            setEditingSauna(null);
+            });
+            setEditingItem(null);
             if (onUpdate) onUpdate();
             fetchUserData();
+        } catch (err: any) {
+            alert('Update failed: ' + err.message);
         }
     };
 
     const updatePreferences = async (updates: { theme?: 'light' | 'dark', language?: 'sv' | 'fi' | 'en' }) => {
         try {
-            const currentPrefs = profile?.metadata?.preferences || {};
+            const currentPrefs = profile?.preferences || {};
             const nextPrefs = { ...currentPrefs, ...updates };
 
-            const { error } = await supabase
-                .from('profiles')
-                .update({
-                    metadata: {
-                        ...profile?.metadata,
-                        preferences: nextPrefs
-                    }
-                })
-                .eq('id', user.id);
-
-            if (error) throw error;
+            await updateDoc(doc(db, 'profiles', user.uid), {
+                preferences: nextPrefs
+            });
 
             if (updates.theme) setTheme(updates.theme);
             if (updates.language) setLang(updates.language);
@@ -278,8 +330,8 @@ export const UserPanel: React.FC<UserPanelProps> = ({
                         <div className="absolute -inset-2 bg-primary/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black tracking-tight text-slate-900 uppercase">Dashboard</h2>
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">{t.member}</span>
+                        <h2 className="text-xl font-semibold tracking-tight text-slate-900 uppercase">Dashboard</h2>
+                        <span className="text-xs font-semibold uppercase text-slate-400 tracking-[0.2em]">{t.member}</span>
                     </div>
                 </div>
 
@@ -294,9 +346,10 @@ export const UserPanel: React.FC<UserPanelProps> = ({
                         icon={<Inbox className="size-5" />}
                         label={t.submissions}
                         active={activeTab === 'submissions'}
-                        badge={mySaunas.length}
+                        badge={myItems.length}
                         onClick={() => { setActiveTab('submissions'); setSidebarOpen(false); }}
                     />
+
                     <UserNavItem
                         icon={<GraduationCap className="size-5" />}
                         label={t.education}
@@ -320,17 +373,10 @@ export const UserPanel: React.FC<UserPanelProps> = ({
                 </nav>
 
                 <div className="pt-10 space-y-4">
-                    <button
-                        onClick={onAddSauna}
-                        className="w-full group flex items-center justify-center gap-3 px-6 py-5 rounded-[1.5rem] bg-slate-900 text-white font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 shadow-2xl shadow-slate-900/10 transition-all overflow-hidden relative"
-                    >
-                        <PlusCircle className="size-5 group-hover:rotate-90 transition-transform duration-500" />
-                        <span className="relative z-10">{t.submit}</span>
-                        <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-10 transition-opacity" />
-                    </button>
+
                     <button
                         onClick={onClose}
-                        className="w-full flex items-center gap-3 px-6 py-4 rounded-[1.5rem] bg-white text-slate-500 font-bold text-sm hover:text-slate-900 hover:bg-slate-100 transition-all border border-slate-200/50"
+                        className="w-full flex items-center gap-3 px-6 py-4 rounded-[1.5rem] bg-white text-slate-500 font-medium text-sm hover:text-slate-900 hover:bg-slate-100 transition-all border border-slate-200/50"
                     >
                         <ArrowLeft className="size-4" />
                         {t.back}
@@ -345,17 +391,17 @@ export const UserPanel: React.FC<UserPanelProps> = ({
                         key={activeTab}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="text-2xl font-black text-slate-900 uppercase tracking-tight"
+                        className="text-2xl font-semibold text-slate-900 uppercase tracking-tight"
                     >
                         {t[activeTab]}
                     </motion.h1>
 
                     <div className="flex items-center gap-4 py-2 px-4 rounded-full hover:bg-slate-50 transition-colors cursor-pointer group">
                         <div className="text-right">
-                            <p className="text-sm font-black text-slate-900 group-hover:text-primary transition-colors">{profile?.full_name}</p>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{profile?.role}</p>
+                            <p className="text-sm font-semibold text-slate-900 group-hover:text-primary transition-colors">{profile?.full_name}</p>
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{profile?.role}</p>
                         </div>
-                        <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black border border-primary/20 group-hover:scale-110 transition-transform">
+                        <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-semibold border border-primary/20 group-hover:scale-110 transition-transform">
                             {profile?.full_name?.[0] || 'U'}
                         </div>
                     </div>
@@ -375,7 +421,7 @@ export const UserPanel: React.FC<UserPanelProps> = ({
                                 className="h-full flex flex-col items-center justify-center text-slate-300 gap-6"
                             >
                                 <div className="size-12 border-[3px] border-slate-100 border-t-primary rounded-full animate-spin" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em]">Syncing Archive...</span>
+                                <span className="text-xs font-semibold uppercase tracking-[0.3em]">Syncing Archive...</span>
                             </motion.div>
                         ) : (
                             <motion.div
@@ -390,7 +436,7 @@ export const UserPanel: React.FC<UserPanelProps> = ({
                                     <UserOverview stats={stats} profile={profile} t={t} />
                                 )}
                                 {activeTab === 'submissions' && (
-                                    <UserSubmissionsList saunas={mySaunas} lang={lang} t={t} onEdit={setEditingSauna} deleteSauna={deleteSauna} />
+                                    <UserSubmissionsList items={myItems} lang={lang} t={t} onEdit={setEditingItem} deleteItem={deleteSauna} />
                                 )}
                                 {activeTab === 'education' && (
                                     <EducationManager materials={materials} t={t} onRefresh={fetchUserData} profile={profile} />
@@ -415,15 +461,16 @@ export const UserPanel: React.FC<UserPanelProps> = ({
             </main>
 
             <AnimatePresence>
-                {editingSauna && (
+                {editingItem && (
                     <EditArchiveModal
-                        sauna={editingSauna}
+                        item={editingItem}
                         lang={lang}
-                        onClose={() => setEditingSauna(null)}
-                        onSave={saveSaunaEdit}
+                        onClose={() => setEditingItem(null)}
+                        onSave={saveItemEdit}
                     />
                 )}
             </AnimatePresence>
+
         </motion.div>
     );
 };
@@ -443,11 +490,11 @@ const UserNavItem = ({ icon, label, active, onClick, badge }: any) => (
                 "transition-colors duration-300",
                 active ? "text-primary" : "text-slate-400 group-hover:text-slate-900"
             )}>{icon}</span>
-            <span className="text-sm font-black tracking-tight uppercase group-hover:translate-x-1 transition-transform">{label}</span>
+            <span className="text-sm font-semibold tracking-tight uppercase group-hover:translate-x-1 transition-transform">{label}</span>
         </div>
         {badge !== undefined && (
             <span className={cn(
-                "text-[10px] font-black px-2.5 py-1 rounded-full border transition-all",
+                "text-xs font-semibold px-2.5 py-1 rounded-full border transition-all",
                 active ? "bg-primary/10 border-primary/20 text-primary" : "bg-white border-slate-100 text-slate-400"
             )}>{badge}</span>
         )}
@@ -465,11 +512,11 @@ const UserOverview = ({ stats, profile, t }: any) => (
                     <CheckCircle2 className="size-16 text-primary" />
                 </div>
                 <div>
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] font-black uppercase tracking-widest mb-6">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-semibold uppercase tracking-wide mb-6">
                         <CheckCircle2 className="size-3" />
                         {profile?.status === 'approved' ? t.verified : t.pending}
                     </div>
-                    <h2 className="text-4xl lg:text-5xl font-black tracking-tighter mb-4 leading-tight">
+                    <h2 className="text-2xl lg:text-xl font-semibold tracking-tight mb-4 leading-tight">
                         {profile?.status === 'approved'
                             ? "Welcome to the verified inner circle."
                             : "Your journey to the archive begins."}
@@ -517,15 +564,17 @@ const UserStatCard = ({ icon, label, value, color, bg }: any) => (
         <div className={cn("size-14 rounded-2xl flex items-center justify-center mb-8 border border-white transition-transform group-hover:scale-110", bg, color)}>
             {icon}
         </div>
-        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">{label}</p>
-        <p className="text-5xl font-black text-slate-900 tracking-tighter">{value}</p>
+        <p className="text-xs font-semibold uppercase text-slate-400 tracking-wide mb-2">{label}</p>
+        <p className="text-xl font-semibold text-slate-900 tracking-tight">{value}</p>
     </motion.div>
 );
 
-const UserSubmissionsList = ({ saunas, lang, t, onEdit, deleteSauna }: any) => (
+const UserSubmissionsList = ({ items, lang, t, onEdit, deleteItem }: any) => (
+
     <div className="space-y-6">
         <div className="flex items-center justify-between mb-10">
-            <h3 className="text-xl font-black text-slate-900 uppercase">My Heritage Contributions</h3>
+            <h3 className="text-xl font-semibold text-slate-900 uppercase">My Contributions</h3>
+
             <div className="flex gap-2">
                 <button className="size-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-slate-900 transition-all border border-slate-100">
                     <Filter className="size-4" />
@@ -536,21 +585,24 @@ const UserSubmissionsList = ({ saunas, lang, t, onEdit, deleteSauna }: any) => (
             </div>
         </div>
 
-        {saunas.length === 0 ? (
+        {items.length === 0 ? (
+
             <div className="py-24 text-center rounded-[3rem] border-2 border-dashed border-slate-100 flex flex-col items-center">
                 <div className="size-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-6">
                     <Inbox className="size-10" />
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">{t.no_contrib}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">{t.no_contrib}</p>
             </div>
         ) : (
             <div className="grid grid-cols-1 gap-6">
-                {saunas.map((s: Sauna, index: number) => {
+                {items.map((s: ContentItem, index: number) => {
+
                     const m = (typeof s.media === 'string' ? JSON.parse(s.media) : s.media) || {};
                     const images = Array.isArray(m.images) ? m.images : [];
                     const displayImg = m.featured_image || images[0] || '';
-                    const resolveUrl = (url: string) => url?.startsWith('http') ? url : `https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/${url?.startsWith('/') ? url.slice(1) : url}`;
+                    const resolveUrl = (url: string) => url?.startsWith('http') ? url : `https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/material-media/${url?.startsWith('/') ? url.slice(1) : url}`;
                     const content = (typeof s.content === 'string' ? JSON.parse(s.content) : s.content)?.[lang] || { name: 'Archive Entry' };
+
 
                     return (
                         <motion.div
@@ -570,16 +622,16 @@ const UserSubmissionsList = ({ saunas, lang, t, onEdit, deleteSauna }: any) => (
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-4 mb-3">
-                                        <h4 className="font-black text-xl text-slate-900 uppercase truncate tracking-tight">{content.name}</h4>
+                                        <h4 className="font-semibold text-xl text-slate-900 uppercase truncate tracking-tight">{content.name}</h4>
                                         <div className={cn(
-                                            "flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                                            "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border",
                                             s.status === 'approved' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100 shadow-sm shadow-amber-500/10 animate-pulse"
                                         )}>
                                             {s.status === 'approved' ? <CheckCircle2 className="size-2.5" /> : <Clock className="size-2.5" />}
                                             {s.status}
                                         </div>
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    <div className="flex flex-wrap items-center gap-6 text-xs font-semibold uppercase tracking-wide text-slate-400">
                                         <span className="flex items-center gap-1.5"><Clock className="size-3" /> {s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Draft'}</span>
                                         <span className="flex items-center gap-1.5 text-primary/60"><Eye className="size-3" /> {s.views || 0} Views</span>
                                     </div>
@@ -588,15 +640,16 @@ const UserSubmissionsList = ({ saunas, lang, t, onEdit, deleteSauna }: any) => (
                             <div className="flex gap-3 w-full sm:w-auto">
                                 <button
                                     onClick={() => onEdit(s)}
-                                    className="flex-1 sm:flex-none flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:translate-y-[-2px] active:scale-95 transition-all"
+                                    className="flex-1 sm:flex-none flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl text-xs font-semibold uppercase tracking-wide shadow-xl shadow-slate-900/10 hover:translate-y-[-2px] active:scale-95 transition-all"
                                 >
                                     <Edit3 className="size-3" />
                                     {t.edit}
                                 </button>
                                 <button
-                                    onClick={() => deleteSauna(s.id)}
+                                    onClick={() => deleteItem(s.id!)}
                                     className="size-12 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-2xl border border-slate-50 transition-all active:scale-90"
                                 >
+
                                     <Trash2 className="size-5" />
                                 </button>
                             </div>
@@ -615,36 +668,36 @@ const UserSettingsView = ({ profile, t, user, theme, lang, updatePreferences }: 
                 <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                     <Settings className="size-5" />
                 </div>
-                <h3 className="text-xl font-black uppercase text-slate-900 dark:text-white tracking-tight">{t.profile_settings}</h3>
+                <h3 className="text-xl font-semibold uppercase text-slate-900 dark:text-white tracking-tight">{t.profile_settings}</h3>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
                 <div className="space-y-10">
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">{t.name}</label>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-5 rounded-3xl font-bold text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 shadow-inner">
+                        <label className="text-xs font-semibold uppercase text-slate-400 tracking-wide ml-1">{t.name}</label>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-5 rounded-3xl font-medium text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 shadow-inner">
                             {profile?.full_name || 'Not set'}
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">{t.email}</label>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-5 rounded-3xl font-bold text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-slate-800 shadow-inner">
+                        <label className="text-xs font-semibold uppercase text-slate-400 tracking-wide ml-1">{t.email}</label>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-5 rounded-3xl font-medium text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-slate-800 shadow-inner">
                             {user?.email}
                         </div>
                     </div>
 
                     <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-6 block">Interface Preferences</label>
+                        <label className="text-xs font-semibold uppercase text-slate-400 tracking-wide ml-1 mb-6 block">Interface Preferences</label>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-3">
-                                <span className="text-[10px] font-black uppercase text-slate-300 tracking-widest ml-1">Theme</span>
+                                <span className="text-xs font-semibold uppercase text-slate-300 tracking-wide ml-1">Theme</span>
                                 <div className="flex p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
                                     <button
                                         onClick={() => updatePreferences({ theme: 'light' })}
                                         className={cn(
-                                            "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                            "flex-1 py-3 px-4 rounded-xl text-xs font-semibold uppercase tracking-wide transition-all",
                                             theme === 'light' ? "bg-white text-slate-900 shadow-xl" : "text-slate-400 hover:text-slate-600"
                                         )}
                                     >
@@ -653,7 +706,7 @@ const UserSettingsView = ({ profile, t, user, theme, lang, updatePreferences }: 
                                     <button
                                         onClick={() => updatePreferences({ theme: 'dark' })}
                                         className={cn(
-                                            "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                            "flex-1 py-3 px-4 rounded-xl text-xs font-semibold uppercase tracking-wide transition-all",
                                             theme === 'dark' ? "bg-slate-950 text-white shadow-xl" : "text-slate-400 hover:text-slate-300"
                                         )}
                                     >
@@ -663,14 +716,14 @@ const UserSettingsView = ({ profile, t, user, theme, lang, updatePreferences }: 
                             </div>
 
                             <div className="space-y-3">
-                                <span className="text-[10px] font-black uppercase text-slate-300 tracking-widest ml-1">Language</span>
+                                <span className="text-xs font-semibold uppercase text-slate-300 tracking-wide ml-1">Language</span>
                                 <div className="flex p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
                                     {(['en', 'sv', 'fi'] as const).map(l => (
                                         <button
                                             key={l}
                                             onClick={() => updatePreferences({ language: l })}
                                             className={cn(
-                                                "flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl",
+                                                "flex-1 py-3 text-xs font-semibold uppercase tracking-wide transition-all rounded-xl",
                                                 lang === l ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
                                             )}
                                         >
@@ -687,14 +740,14 @@ const UserSettingsView = ({ profile, t, user, theme, lang, updatePreferences }: 
                     <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:scale-110 transition-transform duration-1000">
                         <ShieldCheck className="size-48" />
                     </div>
-                    <div className="size-32 rounded-[2.5rem] bg-white dark:bg-slate-800 shadow-2xl flex items-center justify-center text-primary font-black text-4xl mb-8 border border-white dark:border-slate-700">
+                    <div className="size-32 rounded-[2.5rem] bg-white dark:bg-slate-800 shadow-2xl flex items-center justify-center text-primary font-semibold text-2xl mb-8 border border-white dark:border-slate-700">
                         {profile?.full_name?.[0]}
                     </div>
-                    <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-3">{profile?.full_name}</h4>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-10">{profile?.role}</p>
+                    <h4 className="text-xl font-semibold text-slate-900 dark:text-white uppercase tracking-tight mb-3">{profile?.full_name}</h4>
+                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-10">{profile?.role}</p>
 
                     <div className="flex flex-col gap-4 w-full px-6">
-                        <div className="px-6 py-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center gap-2">
+                        <div className="px-6 py-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wide border border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center gap-2">
                             <div className="size-1.5 bg-emerald-500 rounded-full animate-pulse" />
                             Active Profile
                         </div>
@@ -705,7 +758,7 @@ const UserSettingsView = ({ profile, t, user, theme, lang, updatePreferences }: 
 
         <div className="p-8 bg-slate-50 dark:bg-slate-900/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 flex items-start gap-4">
             <Clock className="size-5 text-slate-300 shrink-0" />
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium leading-relaxed italic">{t.locked}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium leading-relaxed italic">{t.locked}</p>
         </div>
     </div>
 );

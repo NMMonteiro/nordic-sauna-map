@@ -1,26 +1,29 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { Profile, LanguageCode } from '../types';
-import { User } from '@supabase/supabase-js';
+import { User as FirebaseUser } from 'firebase/auth';
 import { Newsletter } from './Newsletter';
 import { CookieBanner } from './CookieBanner';
 import { useLocation, Link } from 'react-router-dom';
-import { Map as MapIcon, BookOpen, GraduationCap, Grid, User as UserIcon, ShieldAlert } from 'lucide-react';
+import { Home, BookOpen, GraduationCap, Grid, User as UserIcon, ShieldAlert } from 'lucide-react';
+
 import { cn } from '../lib/utils';
+import { useTranslation } from '../contexts/TranslationContext';
 
 interface LayoutProps {
     children: ReactNode;
     lang: LanguageCode;
     setLang: (lang: LanguageCode) => void;
-    user: User | null;
+    user: FirebaseUser | null;
     profile: Profile | null;
     isMenuOpen: boolean;
     setIsMenuOpen: (open: boolean) => void;
     setShowAuthModal: (show: boolean) => void;
     setShowAdminPanel: (show: boolean) => void;
     setShowUserPanel: (show: boolean) => void;
+    branding?: any;
 }
 
 export const Layout = ({
@@ -33,7 +36,8 @@ export const Layout = ({
     setIsMenuOpen,
     setShowAuthModal,
     setShowAdminPanel,
-    setShowUserPanel
+    setShowUserPanel,
+    branding
 }: LayoutProps) => {
     const { scrollYProgress } = useScroll();
     const location = useLocation();
@@ -43,45 +47,35 @@ export const Layout = ({
         restDelta: 0.001
     });
 
-    const isAdmin = profile?.role === 'admin';
+    const SUPER_ADMIN_EMAIL = 'nunommonteiro1972@gmail.com';
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin' || user?.email === SUPER_ADMIN_EMAIL;
 
-    const scrollToMap = (e: React.MouseEvent) => {
-        if (location.pathname === '/') {
-            e.preventDefault();
-            const element = document.getElementById('map-section');
-            if (element) {
-                const offset = 80;
-                const bodyRect = document.body.getBoundingClientRect().top;
-                const elementRect = element.getBoundingClientRect().top;
-                const elementPosition = elementRect - bodyRect;
-                const offsetPosition = elementPosition - offset;
+    const { t } = useTranslation();
 
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        }
-    };
+    useEffect(() => {
+        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.lang = lang;
+    }, [lang]);
+
 
     const navItems = [
         {
             path: '/',
-            icon: <MapIcon className="size-5" />,
-            label: 'Map',
-            action: location.pathname === '/' ? scrollToMap : undefined
+            icon: <Home className="size-5" />,
+            label: t.home
         },
-        { path: '/blog', icon: <BookOpen className="size-5" />, label: 'Blog' },
-        { path: '/education', icon: <GraduationCap className="size-5" />, label: 'Learn' },
+
+        { path: '/blog', icon: <BookOpen className="size-5" />, label: t.blog },
+        { path: '/education', icon: <GraduationCap className="size-5" />, label: t.education },
         {
             action: () => user ? setShowUserPanel(true) : setShowAuthModal(true),
             icon: <UserIcon className="size-5" />,
-            label: 'Profile'
+            label: t.profile
         },
         ...(isAdmin ? [{
             action: () => setShowAdminPanel(true),
             icon: <ShieldAlert className="size-5" />,
-            label: 'Admin'
+            label: t.admin
         }] : [])
     ];
 
@@ -103,6 +97,7 @@ export const Layout = ({
                 setShowAuthModal={setShowAuthModal}
                 setShowAdminPanel={setShowAdminPanel}
                 setShowUserPanel={setShowUserPanel}
+                branding={branding}
             />
 
             <motion.main
@@ -137,7 +132,7 @@ export const Layout = ({
                                             {item.icon}
                                         </div>
                                         <span className={cn(
-                                            "text-[10px] font-black uppercase tracking-widest transition-colors",
+                                            "text-xs font-semibold uppercase tracking-wide transition-colors",
                                             isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"
                                         )}>
                                             {item.label}
@@ -164,7 +159,7 @@ export const Layout = ({
                                             )}
                                         </div>
                                         <span className={cn(
-                                            "text-[10px] font-black uppercase tracking-widest transition-colors",
+                                            "text-xs font-semibold uppercase tracking-wide transition-colors",
                                             isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"
                                         )}>
                                             {item.label}
@@ -179,7 +174,7 @@ export const Layout = ({
 
 
             {location.pathname !== '/unsubscribe' && <Newsletter lang={lang} />}
-            <Footer lang={lang} />
+            <Footer lang={lang} branding={branding} />
             <CookieBanner lang={lang} />
         </div>
     );

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#2563EB" />
+  <script>
+    // Custom VH for mobile true full screen
+    const setVH = () => {
+      let vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', setVH);
+    setVH();
+  </script>
+  <link rel="icon" type="image/png" href="/logo.png" id="favicon" />
+  <title id="page-title">Suomiportaat</title>
+
+  <!-- Early branding fetch to prevent flash of default content -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Noto+Sans+Arabic:wght@100..900&family=Noto+Sans+Ukrainian:wght@100..900&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#2563EB",
+            "secondary": "#60A5FA",
+            "bg-surface": "#FFFFFF",
+            "bg-card": "#FFFFFF",
+            "text-main": "#0F172A",
+            "text-muted": "#64748B",
+            "border-main": "#E2E8F0"
+          },
+          fontFamily: {
+            "display": ["Atkinson Hyperlegible", "sans-serif"],
+            "body": ["Atkinson Hyperlegible", "sans-serif"],
+            "arabic": ["Noto Sans Arabic", "sans-serif"],
+            "ukrainian": ["Noto Sans Ukrainian", "sans-serif"]
+          }
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Atkinson Hyperlegible', sans-serif;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .nordic-gradient {
+      background: linear-gradient(180deg, rgba(16, 22, 34, 0.8) 0%, rgba(16, 22, 34, 1) 100%);
+    }
+
+    /* Custom scrollbar for modal content */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* Leaflet overrides */
+    .leaflet-popup-content-wrapper {
+      background: white;
+      color: #1e293b;
+      border-radius: 1rem;
+      border: 1px solid rgba(125, 211, 252, 0.2);
+    }
+
+    .leaflet-popup-tip {
+      background: white;
+    }
+
+    .leaflet-container {
+      height: 100% !important;
+      width: 100% !important;
+      background: #f8fafc !important;
+    }
+
+    /* Leaflet custom marker cleanup */
+    .custom-leaflet-marker {
+      background: none !important;
+      border: none !important;
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/index-DydN9hy2.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BEIzy7qd.css">
+</head>
+
+<body
+  class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display transition-colors duration-300">
+  <div id="root"></div>
+</body>
+
+</html>

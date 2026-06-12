@@ -17,6 +17,15 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
-  }
+    sourcemap: true,
+    // Copy .htaccess to dist folder
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
+  },
+  publicDir: 'public',
+  // Ensure .htaccess is copied to dist
+  assetsInclude: ['**/.htaccess']
 });

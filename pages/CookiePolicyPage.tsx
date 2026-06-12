@@ -11,8 +11,8 @@ export const CookiePolicyPage = ({ lang }: CookiePolicyPageProps) => {
     const t = {
         en: {
             title: "Cookie Policy",
-            lastUpdated: "Last updated: February 5, 2026",
-            intro: "We use cookies to enhance your experience on our heritage map. This policy describes what cookies are, how we use them, and how you can manage your preferences.",
+            lastUpdated: "Last updated: April 28, 2026",
+            intro: "We use cookies to enhance your experience on our workshop platform. This policy describes what cookies are, how we use them, and how you can manage your preferences.",
             sections: [
                 {
                     title: "What are Cookies?",
@@ -22,12 +22,12 @@ export const CookiePolicyPage = ({ lang }: CookiePolicyPageProps) => {
                 {
                     title: "Essential Cookies",
                     icon: <ShieldCheck className="size-6" />,
-                    content: "These cookies are necessary for the website to function. We use them primarily to store your language preference (SV, FI, EN) and your theme choice (Light/Dark mode)."
+                    content: "These cookies are necessary for the website to function. We use them primarily to store your language preference (FI, EN, SV, AR, UK) and your theme choice (Light/Dark mode)."
                 },
                 {
                     title: "Analytics",
                     icon: <Settings className="size-6" />,
-                    content: "We may use basic analytics to understand how many people visit the map. This data is anonymized and helps us improve the user experience for everyone."
+                    content: "We may use basic analytics to understand how many people visit our platform. This data is anonymized and helps us improve the user experience for everyone."
                 },
                 {
                     title: "Your Choices",
@@ -38,8 +38,8 @@ export const CookiePolicyPage = ({ lang }: CookiePolicyPageProps) => {
         },
         sv: {
             title: "Cookiepolicy",
-            lastUpdated: "Senast uppdaterad: 5 februari 2026",
-            intro: "Vi använder cookies för att förbättra din upplevelse på vår karta. Denna policy beskriver vad cookies är, hur vi använder dem och hur du kan hantera dina inställningar.",
+            lastUpdated: "Senast uppdaterad: 28 april 2026",
+            intro: "Vi använder cookies för att förbättra din upplevelse på vår plattform. Denna policy beskriver vad cookies är, hur vi använder dem och hur du kan hantera dina inställningar.",
             sections: [
                 {
                     title: "Vad är Cookies?",
@@ -49,53 +49,107 @@ export const CookiePolicyPage = ({ lang }: CookiePolicyPageProps) => {
                 {
                     title: "Nödvändiga Cookies",
                     icon: <ShieldCheck className="size-6" />,
-                    content: "Dessa cookies är nödvändiga för att webbplatsen ska fungera. Vi använder dem främst för att lagra dina språkinställningar (SV, FI, EN) och ditt val av tema (Ljust/Mörkt läge)."
+                    content: "Dessa cookies är nödvändiga för att webbplatsen ska fungera. Vi använder dem främst för att lagra dina språkinställningar (FI, EN, SV, AR, UK) och ditt val av tema."
                 },
                 {
                     title: "Analys",
                     icon: <Settings className="size-6" />,
-                    content: "Vi kan komma att använda grundläggande analys för att förstå hur många som besöker kartan. Denna data är anonymiserad och hjälper oss att förbättra användarupplevelsen för alla."
+                    content: "Vi kan komma att använda grundläggande analys för att förstå hur många som besöker plattformen. Denna data är anonymiserad och hjälper oss att förbättra användarupplevelsen."
                 },
                 {
                     title: "Dina Val",
                     icon: <HelpCircle className="size-6" />,
-                    content: "Du kan kontrollera eller radera cookies som du vill. Du kan radera alla cookies som redan finns på din dator och du kan ställa in de flesta webbläsare så att de förhindrar att de placeras."
+                    content: "Du kan kontrollera eller radera cookies som du vill. Du kan radera alla cookies som redan finns på din dator."
                 }
             ]
         },
         fi: {
             title: "Evästekäytäntö",
-            lastUpdated: "Viimeksi päivitetty: 5. helmikuuta 2026",
-            intro: "Käytämme evästeitä parantaaksemme kokemustasi kartallamme. Tämä käytäntö kuvaa, mitä evästeet ovat, miten käytämme niitä ja miten voit hallita asetuksiasi.",
+            lastUpdated: "Viimeksi päivitetty: 28. huhtikuuta 2026",
+            intro: "Käytämme evästeitä parantaaksemme kokemustasi alustallamme. Tämä käytäntö kuvaa, mitä evästeet ovat, miten käytämme niitä ja miten voit hallita asetuksiasi.",
             sections: [
                 {
                     title: "Mitä evästeet ovat?",
                     icon: <Cookie className="size-6" />,
-                    content: "Evästeet ovat pieniä tekstitiedostoja, joita tallennetaan laitteellesi, kun vierailet verkkosivustolla. Ne auttavat sivustoa muistamaan toimintasi ja asetuksesi (kuten teeman ja kielen) tietyn ajan kuluessa."
+                    content: "Evästeet ovat pieniä tekstitiedostoja, joita tallennetaan laitteellesi, kun vierailet verkkosivustolla. Ne auttavat sivustoa muistamaan toimintasi ja asetuksesi."
                 },
                 {
                     title: "Välttämättömät evästeet",
                     icon: <ShieldCheck className="size-6" />,
-                    content: "Nämä evästeet ovat välttämättömiä verkkosivuston toiminnalle. Käytämme niitä ensisijaisesti kieliasetustesi (SV, FI, EN) ja teemavalintasi (vaalea/tumma tila) tallentamiseen."
+                    content: "Nämä evästeet ovat välttämättömiä verkkosivuston toiminnalle. Käytämme niitä ensisijaisesti kieliasetustesi (FI, EN, SV, AR, UK) ja teemavalintasi tallentamiseen."
                 },
                 {
                     title: "Analytiikka",
                     icon: <Settings className="size-6" />,
-                    content: "Saatamme käyttää perusanalyysiä ymmärtääksemme, kuinka monta ihmistä vierailee kartalla. Nämä tiedot ovat anonymisoituja ja auttavat meitä parantamaan käyttökokemusta kaikille."
+                    content: "Saatamme käyttää perusanalyysiä ymmärtääksemme kävijämääriä. Nämä tiedot ovat anonymisoituja."
                 },
                 {
                     title: "Valintasi",
                     icon: <HelpCircle className="size-6" />,
-                    content: "Voit hallita tai poistaa evästeitä haluamallasi tavalla. Voit poistaa kaikki tietokoneellasi jo olevat evästeet ja asettaa useimmat selaimet estämään niiden asettamisen."
+                    content: "Voit hallita tai poistaa evästeitä haluamallasi tavalla."
+                }
+            ]
+        },
+        ar: {
+            title: "سياسة ملفات الارتباط",
+            lastUpdated: "آخر تحديث: 28 أبريل 2026",
+            intro: "نحن نستخدم ملفات تعريف الارتباط لتحسين تجربتك على منصة ورش العمل الخاصة بنا. توضح هذه السياسة ماهية ملفات تعريف الارتباط وكيفية استخدامنا لها.",
+            sections: [
+                {
+                    title: "ما هي ملفات تعريف الارتباط؟",
+                    icon: <Cookie className="size-6" />,
+                    content: "ملفات تعريف الارتباط هي ملفات نصية صغيرة يتم تخزينها على جهازك عند زيارة موقع ويب. وهي تساعد الموقع على تذكر أفعالك وتفضيلاتك."
+                },
+                {
+                    title: "ملفات الارتباط الأساسية",
+                    icon: <ShieldCheck className="size-6" />,
+                    content: "هذه الملفات ضرورية لعمل الموقع. نستخدمها بشكل أساسي لتخزين تفضيلات اللغة واختيار المظهر."
+                },
+                {
+                    title: "التحليلات",
+                    icon: <Settings className="size-6" />,
+                    content: "قد نستخدم تحليلات أساسية لفهم كيفية زيارة المستخدمين للمنصة. هذه البيانات مجهولة المصدر."
+                },
+                {
+                    title: "خياراتك",
+                    icon: <HelpCircle className="size-6" />,
+                    content: "يمكنك التحكم في ملفات تعريف الارتباط أو حذفها كما يحلو لك."
+                }
+            ]
+        },
+        uk: {
+            title: "Політика використання файлів cookie",
+            lastUpdated: "Останнє оновлення: 28 квітня 2026",
+            intro: "Ми використовуємо файли cookie, щоб покращити ваш досвід на нашій платформі воркшопів. Ця політика описує, що таке файли cookie та як ми їх використовуємо.",
+            sections: [
+                {
+                    title: "Що таке файли cookie?",
+                    icon: <Cookie className="size-6" />,
+                    content: "Cookie — це невеликі текстові файли, які зберігаються на вашому пристрої під час відвідування веб-сайту. Вони допомагають сайту запам'ятати ваші дії та налаштування."
+                },
+                {
+                    title: "Необхідні файли cookie",
+                    icon: <ShieldCheck className="size-6" />,
+                    content: "Ці файли cookie необхідні для роботи веб-сайту. Ми використовуємо їх для збереження мовних налаштувань та вибору теми."
+                },
+                {
+                    title: "Аналітика",
+                    icon: <Settings className="size-6" />,
+                    content: "Ми можемо використовувати базову аналітику для розуміння відвідуваності платформи. Ці дані анонімізовані."
+                },
+                {
+                    title: "Ваш вибір",
+                    icon: <HelpCircle className="size-6" />,
+                    content: "Ви можете контролювати або видаляти файли cookie за вашим бажанням."
                 }
             ]
         }
-    }[lang];
+    }[lang] || t.en;
 
     return (
-        <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 pt-40 pb-24 relative overflow-hidden">
+        <div className="min-h-screen bg-bg-surface text-text-main transition-colors duration-300 pt-40 pb-24 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
-                <div className="absolute top-[-5%] left-[-10%] w-[50%] h-[50%] bg-blue-100/30 dark:bg-slate-800 rounded-full" />
+                <div className="absolute top-[-5%] left-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-3xl" />
             </div>
 
             <div className="max-w-4xl mx-auto px-6 relative z-10">
@@ -103,16 +157,20 @@ export const CookiePolicyPage = ({ lang }: CookiePolicyPageProps) => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight uppercase">
-                        {lang === 'sv' ? 'Cookie' : lang === 'fi' ? 'Eväste' : 'Cookie'} <br />
-                        <span className="text-primary italic">{lang === 'sv' ? 'policy' : lang === 'fi' ? 'käytäntö' : 'Policy'}</span>
+                    <h1 className="text-xl md:text-7xl font-semibold mb-6 tracking-tight uppercase font-display">
+                        {lang === 'ar' || lang === 'uk' ? t.title : (
+                            <>
+                                {lang === 'sv' ? 'Cookie' : lang === 'fi' ? 'Eväste' : 'Cookie'} <br />
+                                <span className="text-primary italic">{lang === 'sv' ? 'policy' : lang === 'fi' ? 'käytäntö' : 'Policy'}</span>
+                            </>
+                        )}
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 font-bold mb-12 uppercase tracking-widest text-sm">
+                    <p className="text-text-muted font-medium mb-12 uppercase tracking-wide text-sm font-body">
                         {t.lastUpdated}
                     </p>
 
-                    <div className="p-8 md:p-12 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-2xl mb-16">
-                        <p className="text-xl md:text-2xl font-medium leading-relaxed italic text-slate-700 dark:text-slate-300">
+                    <div className="p-8 md:p-12 bg-bg-card rounded-[3rem] border border-border-main shadow-xl mb-16">
+                        <p className="text-xl md:text-2xl font-medium leading-relaxed italic text-text-main opacity-80 font-body">
                             "{t.intro}"
                         </p>
                     </div>
@@ -125,15 +183,15 @@ export const CookiePolicyPage = ({ lang }: CookiePolicyPageProps) => {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: i * 0.1 }}
-                                className="p-10 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl"
+                                className="p-10 bg-bg-card rounded-[2.5rem] border border-border-main shadow-lg"
                             >
-                                <div className="size-14 rounded-2xl bg-slate-50 dark:bg-slate-800 text-primary flex items-center justify-center mb-8">
+                                <div className="size-14 rounded-2xl bg-bg-surface text-primary flex items-center justify-center mb-8">
                                     {section.icon}
                                 </div>
-                                <h3 className="text-xl font-black uppercase tracking-tight mb-4 text-slate-900 dark:text-white">
+                                <h3 className="text-xl font-semibold uppercase tracking-tight mb-4 text-text-main font-display">
                                     {section.title}
                                 </h3>
-                                <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                                <p className="text-text-muted leading-relaxed font-medium font-body">
                                     {section.content}
                                 </p>
                             </motion.div>

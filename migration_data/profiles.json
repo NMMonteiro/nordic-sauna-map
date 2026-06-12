@@ -1,0 +1,60 @@
+[
+  {
+    "id": "ae321fd3-1a1f-456d-8330-a3cd7397c25c",
+    "email": "user@user.com",
+    "role": "user",
+    "status": "approved",
+    "full_name": "User",
+    "created_at": "2026-02-04T13:57:53.744826+00:00",
+    "metadata": {}
+  },
+  {
+    "id": "77c3a3b9-092b-4cd9-af9b-43ce40fbc66e",
+    "email": "tropicalastralvlm@gmail.com",
+    "role": "user",
+    "status": "pending",
+    "full_name": "TropicalAstral",
+    "created_at": "2026-02-05T12:06:38.172136+00:00",
+    "metadata": {}
+  },
+  {
+    "id": "30edd5ef-f36c-4eea-ba07-511299eca176",
+    "email": "nuno@nuno.com",
+    "role": "admin",
+    "status": "approved",
+    "full_name": "Nuno",
+    "created_at": "2026-02-03T17:02:29.540899+00:00",
+    "metadata": {
+      "preferences": {
+        "theme": "light"
+      }
+    }
+  },
+  {
+    "id": "65ee34e4-34a3-4768-a5d1-b3e4a99c60d5",
+    "email": "admin@admin.com",
+    "role": "admin",
+    "status": "approved",
+    "full_name": "Admin",
+    "created_at": "2026-02-04T13:57:29.626665+00:00",
+    "metadata": {
+      "preferences": {
+        "theme": "dark"
+      }
+    }
+  },
+  {
+    "id": "42c3bc40-066e-4451-a6fa-8b55d0949008",
+    "email": "nunommonteiro1972@gmail.com",
+    "role": "admin",
+    "status": "approved",
+    "full_name": "John",
+    "created_at": "2026-02-03T17:06:33.533356+00:00",
+    "metadata": {
+      "preferences": {
+        "theme": "light",
+        "language": "sv"
+      }
+    }
+  }
+]

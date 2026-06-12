@@ -1,0 +1,126 @@
+[
+  {
+    "id": "d5ead9ba-2026-42ab-b2d3-4516664dc8c9",
+    "sauna_id": "ugc_1770289701327",
+    "coordinates": {
+      "lat": 63.027391558899865,
+      "lng": 16.624218810452735
+    },
+    "metadata": {
+      "type": "wood",
+      "region": "Bispgarden",
+      "country": "Sweden",
+      "submission_lang": "en"
+    },
+    "content": {
+      "en": {
+        "name": "Sauna test 2",
+        "etiquette": "",
+        "description": "lkdlkdlskjdlskjdlajsdlkas"
+      },
+      "fi": {
+        "name": "Sauna test 2",
+        "etiquette": "",
+        "description": "lkdlkdlskjdlskjdlajsdlkas"
+      },
+      "sv": {
+        "name": "Sauna test 2",
+        "etiquette": "",
+        "description": "lkdlkdlskjdlskjdlajsdlkas"
+      }
+    },
+    "media": {
+      "images": [
+        "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/images/0.2365529524164165.jpeg",
+        "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/images/0.4075478196830059.jpg"
+      ],
+      "video_clips": [
+        {
+          "url": "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/Videos/0.098429441571107.mp4",
+          "title": "A sauna video"
+        }
+      ],
+      "audio_interviews": [
+        {
+          "url": "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/audios/0.5049906585812235.mp3",
+          "title": "A Sauna Story",
+          "speaker": ""
+        }
+      ]
+    },
+    "contact": {
+      "email": "",
+      "phone": "",
+      "address": "Bispgarden",
+      "website": ""
+    },
+    "pedagogical_link": null,
+    "created_by": "30edd5ef-f36c-4eea-ba07-511299eca176",
+    "status": "approved",
+    "created_at": "2026-02-05T11:08:21.257285+00:00",
+    "updated_at": "2026-02-05T11:08:21.257285+00:00",
+    "language": "en"
+  },
+  {
+    "id": "24faaad7-7e28-41ca-98b8-b8985140d4ae",
+    "sauna_id": "ugc_1770147775247",
+    "coordinates": {
+      "lat": 61.53150240946966,
+      "lng": 23.604937134104368
+    },
+    "metadata": {
+      "type": "wood",
+      "region": "Vuorentausta",
+      "country": "Finland",
+      "submission_lang": "en"
+    },
+    "content": {
+      "en": {
+        "name": "Test ",
+        "etiquette": "",
+        "description": "Tell Your Story"
+      },
+      "fi": {
+        "name": "Test ",
+        "etiquette": "",
+        "description": "Tell Your Story"
+      },
+      "sv": {
+        "name": "Test ",
+        "etiquette": "",
+        "description": "Tell Your Story"
+      }
+    },
+    "media": {
+      "images": [
+        "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/images/0.8153098288506702.png"
+      ],
+      "video_clips": [
+        {
+          "url": "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/Videos/0.9128937641925249.mp4",
+          "title": "Video Clip"
+        }
+      ],
+      "featured_image": "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/images/0.8153098288506702.png",
+      "audio_interviews": [
+        {
+          "url": "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/audios/0.5377778498624752.wav",
+          "title": "Archive Recording",
+          "speaker": ""
+        }
+      ]
+    },
+    "contact": {
+      "email": "",
+      "phone": "",
+      "address": "Vuorentausta",
+      "website": ""
+    },
+    "pedagogical_link": null,
+    "created_by": "42c3bc40-066e-4451-a6fa-8b55d0949008",
+    "status": "approved",
+    "created_at": "2026-02-03T19:42:51.997841+00:00",
+    "updated_at": "2026-02-03T19:42:51.997841+00:00",
+    "language": "en"
+  }
+]

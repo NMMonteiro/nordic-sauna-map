@@ -19,10 +19,52 @@
     window.addEventListener('orientationchange', setVH);
     setVH();
   </script>
-  <link rel="icon" type="image/png" href="/logo.png" />
-  <title>Nordic Sauna Map | A Shared Cultural Heritage</title>
+  <link rel="icon" type="image/png" href="/logo.png" id="favicon" />
+  <title id="page-title">Suomiportaat</title>
+
+  <!-- Early branding fetch to prevent flash of default content -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js';
+    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBwPVFLEYyJBJEjNMVJZWYvVxOPYpqrKGg",
+      authDomain: "nordic-sauna-map.firebaseapp.com",
+      projectId: "nordic-sauna-map",
+      storageBucket: "nordic-sauna-map.firebasestorage.app",
+      messagingSenderId: "1029751773859",
+      appId: "1:1029751773859:web:4e5e5c5e5e5e5e5e5e5e5e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Fetch branding immediately
+    (async () => {
+      try {
+        const brandingRef = doc(db, 'configs', 'branding');
+        const brandingSnap = await getDoc(brandingRef);
+
+        if (brandingSnap.exists()) {
+          const data = brandingSnap.data();
+
+          // Update title immediately
+          if (data.siteName) {
+            document.getElementById('page-title').textContent = data.siteName;
+          }
+
+          // Update favicon immediately
+          if (data.logoUrl) {
+            document.getElementById('favicon').href = data.logoUrl;
+          }
+        }
+      } catch (err) {
+        console.error('Early branding fetch failed:', err);
+      }
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Noto+Sans+Arabic:wght@100..900&family=Noto+Sans+Ukrainian:wght@100..900&display=swap"
     rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
     rel="stylesheet" />
@@ -35,17 +77,18 @@
         extend: {
           colors: {
             "primary": "#2563EB",
-            "sky": "#7DD3FC",
-            "frost": "#F0F9FF",
-            "snow": "#FAFDFE",
-            "cedar": "#7C2D12",
+            "secondary": "#60A5FA",
+            "bg-surface": "#FFFFFF",
+            "bg-card": "#FFFFFF",
+            "text-main": "#0F172A",
+            "text-muted": "#64748B",
+            "border-main": "#E2E8F0"
           },
           fontFamily: {
-            "display": ["Inter", "sans-serif"]
-          },
-          backgroundImage: {
-            'nordic-sky': 'linear-gradient(180deg, #F0F9FF 0%, #FFFFFF 100%)',
-            'nordic-lake': 'linear-gradient(135deg, #7DD3FC 0%, #2563EB 100%)',
+            "display": ["Atkinson Hyperlegible", "sans-serif"],
+            "body": ["Atkinson Hyperlegible", "sans-serif"],
+            "arabic": ["Noto Sans Arabic", "sans-serif"],
+            "ukrainian": ["Noto Sans Ukrainian", "sans-serif"]
           }
         },
       },
@@ -53,7 +96,7 @@
   </script>
   <style>
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Atkinson Hyperlegible', sans-serif;
     }
 
     .material-symbols-outlined {

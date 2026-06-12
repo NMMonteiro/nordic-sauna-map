@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Function to check if user is an admin
+    function isAdmin() {
+      return request.auth != null && (
+             request.auth.token.email == 'nunommonteiro1972@gmail.com' ||
+             (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+              get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Profiles Collection
+    match /profiles/{userId} {
+      // Users can create their own profile, but must be set as a member initially
+      allow create: if isOwner(userId) && request.resource.data.role == 'member';
+      // Users can read their own profile
+      allow read: if isOwner(userId);
+      // Users can update their own profile, but cannot escalate their own role
+      allow update: if isOwner(userId) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) || request.resource.data.role == resource.data.role);
+      // Admins have full access
+      allow read, write: if isAdmin();
+    }
+
+    // Archives Collection
+    match /archives/{archiveId} {
+      allow read: if resource.data.status == 'approved' || (request.auth != null && resource.data.created_by == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.created_by == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.created_by == request.auth.uid;
+      allow read, write: if isAdmin();
+    }
+
+    // Materials Collection
+    match /materials/{materialId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if isAdmin() || (request.auth != null && resource.data.created_by == request.auth.uid);
+    }
+
+    // Blog Posts Collection
+    match /blog_posts/{postId} {
+      allow read: if resource.data.status == 'approved' || (request.auth != null && resource.data.created_by == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.created_by == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.created_by == request.auth.uid;
+      allow read, write: if isAdmin();
+    }
+
+    // Configs Collection (e.g., branding)
+    match /configs/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Workshops Collection
+    match /workshops/{workshopId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Newsletter Subscribers
+    match /newsletter_subscribers/{subscriberId} {
+      allow get, create, update: if true; // Anyone can subscribe or re-subscribe
+      allow list, delete: if isAdmin();
+    }
+
+    // Broadcasts and Recipients
+    match /broadcasts/{broadcastId} {
+      allow read, write: if isAdmin();
+    }
+    match /broadcast_recipients/{recipientId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Default fallback (deny all)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

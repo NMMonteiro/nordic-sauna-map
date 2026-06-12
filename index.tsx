@@ -3,6 +3,7 @@ import './index.css';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { TranslationProvider } from './contexts/TranslationContext';
 
 console.log("Archive system bootstrapping...");
 const rootElement = document.getElementById('root');
@@ -58,7 +59,9 @@ root.render(
   <React.StrictMode>
     <BrowserRouter>
       <ErrorBoundary>
-        <App />
+        <TranslationProvider>
+          <App />
+        </TranslationProvider>
       </ErrorBoundary>
     </BrowserRouter>
   </React.StrictMode>

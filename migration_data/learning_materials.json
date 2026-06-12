@@ -1,0 +1,74 @@
+[
+  {
+    "id": "e1c34cbb-7bd9-4380-857e-7c267ec14dc7",
+    "title": "PDF test",
+    "description": "dsadasdasdasd",
+    "type": "pdf",
+    "url": "",
+    "file_path": "resources/1770203274664-PIF_ASCOM_Pavia.pdf",
+    "thumbnail": null,
+    "created_by": null,
+    "created_at": "2026-02-04T11:08:03.836372+00:00",
+    "updated_at": "2026-02-04T11:08:03.836372+00:00"
+  },
+  {
+    "id": "c847ef74-7889-43ed-a8d5-b9e63a3fc4d2",
+    "title": "Youtube video test",
+    "description": "sdfsfaffsdf",
+    "type": "video",
+    "url": "https://www.youtube.com/watch?v=1FLrjLteNro",
+    "file_path": "",
+    "thumbnail": null,
+    "created_by": null,
+    "created_at": "2026-02-04T11:09:34.783982+00:00",
+    "updated_at": "2026-02-04T11:09:34.783982+00:00"
+  },
+  {
+    "id": "fec8090a-2690-489f-a52a-5635e71609a7",
+    "title": "Twee test",
+    "description": "dasdasdasdasdasdasdasdsa",
+    "type": "twee",
+    "url": "https://twee.ai/l/su3y2f4",
+    "file_path": "",
+    "thumbnail": null,
+    "created_by": null,
+    "created_at": "2026-02-04T11:19:13.684307+00:00",
+    "updated_at": "2026-02-04T11:19:13.684307+00:00"
+  },
+  {
+    "id": "ea29055e-b13b-4a7b-b5e5-ae5594b8cfe5",
+    "title": "youtube test 2a",
+    "description": "wdwdwwdwd",
+    "type": "video",
+    "url": "https://www.youtube.com/watch?v=1FLrjLteNro",
+    "file_path": "",
+    "thumbnail": "https://img.youtube.com/vi/1FLrjLteNro/maxresdefault.jpg",
+    "created_by": null,
+    "created_at": "2026-02-04T11:26:13.782499+00:00",
+    "updated_at": "2026-02-04T11:26:13.782499+00:00"
+  },
+  {
+    "id": "8d5547c3-5ae2-462e-abc6-8af7d8904494",
+    "title": "Presentation test",
+    "description": "sasdasdasda",
+    "type": "presentation",
+    "url": "",
+    "file_path": "resources/1770205516710-Ravinteli-Olkkari.pptx",
+    "thumbnail": "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/education/thumbnails/1770205535806-Generated%20Image%20February%2002,%202026%20-%206_27PM.png",
+    "created_by": null,
+    "created_at": "2026-02-04T11:10:06.320969+00:00",
+    "updated_at": "2026-02-04T11:10:06.320969+00:00"
+  },
+  {
+    "id": "22bc68e3-2dee-4d95-9c78-060a467e69c9",
+    "title": "The Sauna",
+    "description": "Interactive exercises abour saunas",
+    "type": "twee",
+    "url": "https://twee.ai/l/su6tdf4",
+    "file_path": "",
+    "thumbnail": "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/education/thumbnails/1770222798851-sauna%20twee.png",
+    "created_by": "ae321fd3-1a1f-456d-8330-a3cd7397c25c",
+    "created_at": "2026-02-04T16:33:23.931235+00:00",
+    "updated_at": "2026-02-04T16:33:23.931235+00:00"
+  }
+]

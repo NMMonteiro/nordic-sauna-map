@@ -32,7 +32,7 @@ export const PrivacyPolicyPage = ({ lang }: PrivacyPolicyPageProps) => {
                 {
                     title: "Data Storage",
                     icon: <ScrollText className="size-6" />,
-                    content: "We use Supabase (a secure cloud database) to store our records. Your data is protected by industry-standard encryption and security protocols."
+                    content: "We use Firebase (a secure cloud platform by Google) to store our records. Your data is protected by industry-standard encryption and security protocols."
                 }
             ]
         },
@@ -59,7 +59,7 @@ export const PrivacyPolicyPage = ({ lang }: PrivacyPolicyPageProps) => {
                 {
                     title: "Datalagring",
                     icon: <ScrollText className="size-6" />,
-                    content: "Vi använder Supabase (en säker molndatabas) för att lagra våra register. Dina uppgifter skyddas av industristandard kryptering och säkerhetsprotokoll."
+                    content: "Vi använder Firebase (en säker molnplattform från Google) för att lagra våra register. Dina uppgifter skyddas av industristandard kryptering och säkerhetsprotokoll."
                 }
             ]
         },
@@ -86,7 +86,7 @@ export const PrivacyPolicyPage = ({ lang }: PrivacyPolicyPageProps) => {
                 {
                     title: "Tietojen Säilytys",
                     icon: <ScrollText className="size-6" />,
-                    content: "Käytämme Supabasea (turvallinen pilvitietokanta) rekistereidemme säilyttämiseen. Tietosi on suojattu alan standardien mukaisella salauksella ja tietoturvakäytännöillä."
+                    content: "Käytämme Firebasea (Googlen tarjoama turvallinen pilvialusta) rekistereidemme säilyttämiseen. Tietosi on suojattu alan standardien mukaisella salauksella ja tietoturvakäytännöillä."
                 }
             ]
         }

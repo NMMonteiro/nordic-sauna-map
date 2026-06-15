@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
-import { User } from '@supabase/supabase-js';
+import { db, storage, auth } from '../lib/firebase';
+import { User } from 'firebase/auth';
+import { collection, addDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { LocationPicker } from './LocationPicker';
 import { cn } from '../lib/utils';
+import { resolveMediaUrl } from '../lib/storage';
 
 interface ContributionFormProps {
     onClose: () => void;
@@ -45,37 +48,32 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'audio' | 'video', idx?: number) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file || !currentUser) return;
 
         setUploading(true);
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const folder = type === 'video' ? 'Videos' : type + 's';
-        const filePath = `${folder}/${fileName}`;
+        const filePath = `sauna-media/${folder}/${fileName}`;
 
         try {
-            const { error: uploadError } = await supabase.storage
-                .from('sauna-media')
-                .upload(filePath, file);
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('sauna-media')
-                .getPublicUrl(filePath);
+            const storageRef = ref(storage, filePath);
+            await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(storageRef);
 
             if (type === 'image' && typeof idx === 'number') {
-                updateImageField(idx, publicUrl);
+                updateImageField(idx, downloadURL);
             } else if (type === 'audio' && typeof idx === 'number') {
                 const newAudio = [...formData.audio];
-                newAudio[idx].url = publicUrl;
+                newAudio[idx].url = downloadURL;
                 setFormData({ ...formData, audio: newAudio });
             } else if (type === 'video' && typeof idx === 'number') {
                 const newVideo = [...formData.video];
-                newVideo[idx].url = publicUrl;
+                newVideo[idx].url = downloadURL;
                 setFormData({ ...formData, video: newVideo });
             }
         } catch (err: any) {
+            console.error('Upload error:', err);
             alert('File upload failed: ' + err.message);
         } finally {
             setUploading(false);
@@ -115,16 +113,13 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
                 }))
             },
             contact: { website: '', phone: '', address: formData.location, email: formData.email },
-            created_by: currentUser.id,
+            created_by: currentUser.uid,
+            created_at: new Date().toISOString(),
             status: 'pending_approval'
         };
 
         try {
-            const { error: insertError } = await supabase
-                .from('saunas')
-                .insert([newSauna]);
-
-            if (insertError) throw insertError;
+            await addDoc(collection(db, 'saunas'), newSauna);
             setStep(5);
         } catch (err: any) {
             console.error('Submission error:', err);
@@ -133,6 +128,7 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
             setSubmitting(false);
         }
     };
+
 
     const addImageField = () => setFormData({ ...formData, images: [...formData.images, ''] });
     const updateImageField = (idx: number, val: string) => {
@@ -309,7 +305,7 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ onClose, lan
                                                 <div className="flex items-center justify-between">
                                                     {img ? (
                                                         <div className="size-20 rounded-xl overflow-hidden border border-slate-200">
-                                                            <img src={img} className="w-full h-full object-cover" />
+                                                            <img src={resolveMediaUrl(img, 'sauna-media')} className="w-full h-full object-cover" />
                                                         </div>
                                                     ) : <div className="size-20 bg-slate-50 rounded-xl border border-dashed border-slate-200" />}
 

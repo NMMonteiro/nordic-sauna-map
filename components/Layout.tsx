@@ -3,7 +3,7 @@ import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { Profile, LanguageCode } from '../types';
-import { User } from '@supabase/supabase-js';
+import { User } from 'firebase/auth';
 import { Newsletter } from './Newsletter';
 import { CookieBanner } from './CookieBanner';
 import { useLocation, Link } from 'react-router-dom';
@@ -20,7 +20,7 @@ interface LayoutProps {
     setIsMenuOpen: (open: boolean) => void;
     setShowAuthModal: (show: boolean) => void;
     setShowAdminPanel: (show: boolean) => void;
-    setShowUserPanel: (show: boolean) => void;
+    setShowUserPanel: (show: boolean, tab?: 'overview' | 'submissions' | 'education' | 'blog' | 'settings') => void;
 }
 
 export const Layout = ({

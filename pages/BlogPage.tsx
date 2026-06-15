@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../supabaseClient';
+import { db } from '../lib/firebase';
+import { collection, getDocs, query, where, orderBy, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { BlogPost, LanguageCode, Profile } from '../types';
-import { User } from '@supabase/supabase-js';
+import { User } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { resolveMediaUrl } from '../lib/storage';
 
 export const BlogPage = ({
     lang,
@@ -30,17 +32,26 @@ export const BlogPage = ({
 
     const fetchPosts = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('blog_posts')
-            .select('*, profiles(full_name)')
-            .eq('status', 'approved')
-            .order('created_at', { ascending: false });
+        try {
+            const q = query(
+                collection(db, 'blog_posts'),
+                where('status', '==', 'approved'),
+                orderBy('created_at', 'desc')
+            );
+            
+            const querySnapshot = await getDocs(q);
+            const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
 
-        if (error) {
-            console.error('Error fetching posts:', error);
-        } else {
-            const formattedPosts = (data || []).map(p => {
-                const profileObj = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
+            // Fetch author names for each post (could be optimized with a cache or denormalization)
+            const formattedPosts = await Promise.all(postsData.map(async (p: any) => {
+                let authorName = 'Anonymous';
+                if (p.author_id) {
+                    const profileRef = doc(db, 'profiles', p.author_id);
+                    const profileSnap = await getDoc(profileRef);
+                    if (profileSnap.exists()) {
+                        authorName = profileSnap.data().full_name || 'Anonymous';
+                    }
+                }
 
                 let mediaUrls = [];
                 try {
@@ -50,22 +61,35 @@ export const BlogPage = ({
 
                 return {
                     ...p,
+                    created_at: p.created_at?.toDate?.()?.toISOString() || p.created_at,
                     media_urls: Array.isArray(mediaUrls) ? mediaUrls : [],
-                    author_name: profileObj?.full_name || 'Anonymous'
+                    author_name: authorName
                 };
-            });
+            }));
+
             setPosts(formattedPosts);
+        } catch (error) {
+            console.error('Error fetching posts:', error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleSelectPost = async (post: BlogPost) => {
         setSelectedPost(post);
-        // Increment view count via RPC
-        await supabase.rpc('increment_blog_view', { post_id: post.id });
+        // Increment view count
+        try {
+            const postRef = doc(db, 'blog_posts', post.id);
+            await updateDoc(postRef, {
+                views: increment(1)
+            });
+        } catch (e) {
+            console.error('Error incrementing views:', e);
+        }
     };
 
     const calculateReadTime = (text: string) => {
+        if (!text) return 0;
         const wordsPerMinute = 200;
         const words = text.trim().split(/\s+/).length;
         return Math.ceil(words / wordsPerMinute);
@@ -82,6 +106,8 @@ export const BlogPage = ({
 
     const featuredPost = filteredPosts[0];
     const restPosts = filteredPosts.slice(1);
+
+    const resolveUrl = (url: string) => resolveMediaUrl(url, 'blog-media');
 
     return (
         <div className="bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 min-h-screen pt-40 pb-24 relative overflow-hidden">
@@ -190,7 +216,7 @@ export const BlogPage = ({
                                 className="relative h-[650px] rounded-[3.5rem] overflow-hidden group cursor-pointer shadow-2xl"
                             >
                                 {featuredPost.media_urls?.[0] ? (
-                                    <img src={featuredPost.media_urls[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]" alt={featuredPost.title} />
+                                    <img src={resolveUrl(featuredPost.media_urls[0])} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]" alt={featuredPost.title} />
                                 ) : (
                                     <div className="w-full h-full bg-slate-900" />
                                 )}
@@ -209,7 +235,7 @@ export const BlogPage = ({
                                             <div className="text-white font-bold uppercase text-[10px] tracking-widest">{featuredPost.author_name}</div>
                                         </div>
                                         <div className="h-4 w-px bg-white/20" />
-                                        <div className="text-white/60 font-bold uppercase text-[10px] tracking-widest">{new Date(featuredPost.created_at).toLocaleDateString()}</div>
+                                        <div className="text-white/60 font-bold uppercase text-[10px] tracking-widest">{featuredPost.created_at ? new Date(featuredPost.created_at).toLocaleDateString() : 'Recent'}</div>
                                     </div>
                                 </div>
                             </article>
@@ -225,7 +251,7 @@ export const BlogPage = ({
                                 >
                                     <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden mb-8 shadow-xl">
                                         {post.media_urls?.[0] ? (
-                                            <img src={post.media_urls[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={post.title} />
+                                            <img src={resolveUrl(post.media_urls[0])} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={post.title} />
                                         ) : (
                                             <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
                                                 <span className="material-symbols-outlined text-4xl">image</span>
@@ -241,7 +267,7 @@ export const BlogPage = ({
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 mb-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                        <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                                        <span>{post.created_at ? new Date(post.created_at).toLocaleDateString() : 'Recent'}</span>
                                         <span className="size-1 rounded-full bg-slate-200" />
                                         <span>{calculateReadTime(post.content)} min read</span>
                                     </div>
@@ -286,7 +312,7 @@ export const BlogPage = ({
                         <div className="flex-1 overflow-y-auto no-scrollbar">
                             {selectedPost.media_urls && selectedPost.media_urls.length > 0 && (
                                 <div className="w-full h-[60vh] relative">
-                                    <img src={selectedPost.media_urls[0]} className="w-full h-full object-cover" alt={selectedPost.title} />
+                                    <img src={resolveUrl(selectedPost.media_urls[0])} className="w-full h-full object-cover" alt={selectedPost.title} />
                                     <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
                                 </div>
                             )}
@@ -306,7 +332,7 @@ export const BlogPage = ({
                                     <div className="h-8 w-px bg-slate-100 dark:bg-slate-800" />
                                     <div>
                                         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Published</p>
-                                        <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{new Date(selectedPost.created_at).toLocaleDateString()}</p>
+                                        <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{selectedPost.created_at ? new Date(selectedPost.created_at).toLocaleDateString() : 'Recent'}</p>
                                     </div>
                                     <div className="h-8 w-px bg-slate-100 dark:bg-slate-800" />
                                     <div className="flex items-center gap-4 text-slate-300">
@@ -327,7 +353,7 @@ export const BlogPage = ({
                                         <h4 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 text-center mb-8">Story Gallery</h4>
                                         <div className="columns-1 md:columns-2 gap-8 space-y-8">
                                             {selectedPost.media_urls.slice(1).map((url, i) => (
-                                                <img key={i} src={url} className="rounded-[2.5rem] w-full shadow-xl hover:scale-105 transition-transform duration-700" alt={`Gallery ${i}`} />
+                                                <img key={i} src={resolveUrl(url)} className="rounded-[2.5rem] w-full shadow-xl hover:scale-105 transition-transform duration-700" alt={`Gallery ${i}`} />
                                             ))}
                                         </div>
                                     </div>

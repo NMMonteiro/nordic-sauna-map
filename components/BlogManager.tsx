@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { db } from '../lib/firebase';
+import { doc, deleteDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { resolveMediaUrl } from '../lib/storage';
 import { BlogPostEditor } from './BlogPostEditor';
 
 interface BlogManagerProps {
@@ -23,27 +25,23 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ posts, t, onRefresh, p
 
     const deletePost = async (id: string) => {
         if (!confirm('Are you sure you want to delete this story?')) return;
-        const { error } = await supabase.from('blog_posts').delete().eq('id', id);
-        if (error) {
-            alert(`Delete failed: ${error.message}`);
-        } else {
+        try {
+            await deleteDoc(doc(db, 'blog_posts', id));
             onRefresh();
+        } catch (error: any) {
+            alert(`Delete failed: ${error.message}`);
         }
     };
 
     const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
-        const { error } = await supabase
-            .from('blog_posts')
-            .update({
+        try {
+            await updateDoc(doc(db, 'blog_posts', id), {
                 status,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', id);
-
-        if (error) {
-            alert(`Moderation failed: ${error.message}`);
-        } else {
+                updated_at: Timestamp.now()
+            });
             onRefresh();
+        } catch (error: any) {
+            alert(`Action failed: ${error.message}`);
         }
     };
 
@@ -52,11 +50,13 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ posts, t, onRefresh, p
         setShowEditor(true);
     };
 
+    const resolveUrl = (url: string) => resolveMediaUrl(url, 'blog-media');
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-black text-slate-900 uppercase">
-                    {t.blog || 'Sauna Stories'}
+                    {t.blog || 'Stories'}
                 </h2>
                 <button
                     onClick={() => {
@@ -65,7 +65,7 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ posts, t, onRefresh, p
                     }}
                     className="bg-primary text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-all"
                 >
-                    Share New Story
+                    Add New Story
                 </button>
             </div>
 
@@ -86,11 +86,6 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ posts, t, onRefresh, p
                                     } catch (e) { }
 
                                     const firstImg = urls?.[0];
-                                    const resolveUrl = (url: string) => {
-                                        if (!url || typeof url !== 'string') return '';
-                                        if (url.startsWith('http')) return url;
-                                        return `https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/blog-media/${url.startsWith('/') ? url.slice(1) : url}`;
-                                    };
 
                                     return firstImg ? (
                                         <img src={resolveUrl(firstImg)} className="w-full h-full object-cover" onError={(e: any) => e.target.src = 'https://placehold.co/200x200/f1f5f9/94a3b8?text=?'} />
@@ -109,9 +104,9 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ posts, t, onRefresh, p
                                     </span>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.category} • {new Date(p.created_at).toLocaleDateString()}</p>
-                                    {p.profiles?.full_name && (
-                                        <span className="text-[10px] font-black text-primary uppercase tracking-tighter self-start">by {p.profiles.full_name}</span>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.category} • {p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString() : new Date(p.created_at).toLocaleDateString()}</p>
+                                    {(p.author_name || p.profiles?.full_name) && (
+                                        <span className="text-[10px] font-black text-primary uppercase tracking-tighter self-start">by {p.author_name || p.profiles?.full_name}</span>
                                     )}
                                 </div>
                             </div>

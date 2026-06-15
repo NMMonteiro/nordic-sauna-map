@@ -51,16 +51,17 @@ export interface Contact {
   email?: string;
 }
 
-export type UserRole = 'user' | 'admin';
+export type UserRole = 'user' | 'member' | 'admin';
 export type UserStatus = 'pending' | 'approved' | 'banned';
 
 export interface Profile {
-  id: string;
+  id?: string;
   email: string;
   role: UserRole;
   status: UserStatus;
   full_name?: string;
   metadata?: any;
+  preferences?: any;
 }
 
 export interface Sauna {

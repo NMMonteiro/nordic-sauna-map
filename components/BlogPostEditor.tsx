@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
-import { User } from '@supabase/supabase-js';
+import { db, auth, storage } from '../lib/firebase';
+import { User } from 'firebase/auth';
+import { collection, addDoc, updateDoc, doc, Timestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { LanguageCode } from '../types';
+import { resolveMediaUrl } from '../lib/storage';
 
 interface BlogPostEditorProps {
     lang: LanguageCode;
@@ -39,24 +42,15 @@ export const BlogPostEditor = ({ lang, user, onClose, onSuccess, post }: BlogPos
         setUploading(true);
         const file = e.target.files[0];
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
+        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `blog-media/${user.uid}/${fileName}`;
 
         try {
-            const { error: uploadError } = await supabase.storage
-                .from('blog-media')
-                .upload(filePath, file, {
-                    cacheControl: '3600',
-                    upsert: false
-                });
+            const storageRef = ref(storage, filePath);
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
 
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('blog-media')
-                .getPublicUrl(filePath);
-
-            setMediaUrls(prev => [...prev, publicUrl]);
+            setMediaUrls(prev => [...prev, downloadURL]);
         } catch (error: any) {
             console.error('Error uploading image:', error);
             alert(`Failed to upload image: ${error.message || 'Unknown error'}`);
@@ -79,26 +73,21 @@ export const BlogPostEditor = ({ lang, user, onClose, onSuccess, post }: BlogPos
         setSubmitting(true);
         try {
             const postData = {
-                author_id: post?.author_id || user.id,
+                author_id: post?.author_id || user.uid,
                 title,
                 category,
                 content,
                 media_urls: mediaUrls,
                 status: 'pending_approval',
-                updated_at: new Date().toISOString()
+                updated_at: Timestamp.now(),
+                created_at: post?.created_at || Timestamp.now()
             };
 
             if (post?.id) {
-                const { error } = await supabase
-                    .from('blog_posts')
-                    .update(postData)
-                    .eq('id', post.id);
-                if (error) throw error;
+                const postRef = doc(db, 'blog_posts', post.id);
+                await updateDoc(postRef, postData);
             } else {
-                const { error } = await supabase
-                    .from('blog_posts')
-                    .insert(postData);
-                if (error) throw error;
+                await addDoc(collection(db, 'blog_posts'), postData);
             }
 
             alert(post?.id ? 'Your story has been updated and sent for review!' : 'Your story has been submitted for review!');
@@ -110,6 +99,7 @@ export const BlogPostEditor = ({ lang, user, onClose, onSuccess, post }: BlogPos
             setSubmitting(false);
         }
     };
+
 
     return (
         <div className="fixed inset-0 z-[25000] flex items-center justify-center p-4 md:p-10">
@@ -176,26 +166,18 @@ export const BlogPostEditor = ({ lang, user, onClose, onSuccess, post }: BlogPos
                             </span>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                            {mediaUrls.map((url, i) => {
-                                const resolveUrl = (u: string) => {
-                                    if (!u || typeof u !== 'string') return '';
-                                    if (u.startsWith('http')) return u;
-                                    if (u.startsWith('blob:')) return u; // Handle local previews
-                                    return `https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/blog-media/${u.startsWith('/') ? u.slice(1) : u}`;
-                                };
-                                return (
-                                    <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-sky/10 relative group">
-                                        <img src={resolveUrl(url)} className="w-full h-full object-cover" alt="Uploaded" />
-                                        <button
-                                            type="button"
-                                            onClick={() => setMediaUrls(mediaUrls.filter((_, idx) => idx !== i))}
-                                            className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <span className="material-symbols-outlined">delete</span>
-                                        </button>
-                                    </div>
-                                );
-                            })}
+                            {mediaUrls.map((url, i) => (
+                                <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-sky/10 relative group">
+                                    <img src={resolveMediaUrl(url, 'sauna-media')} className="w-full h-full object-cover" alt="Uploaded" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setMediaUrls(mediaUrls.filter((_, idx) => idx !== i))}
+                                        className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <span className="material-symbols-outlined">delete</span>
+                                    </button>
+                                </div>
+                            ))}
                             <label className="aspect-square rounded-2xl border-2 border-dashed border-sky-100 flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-primary/30 hover:bg-sky/5 cursor-pointer transition-all">
                                 {uploading ? (
                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>

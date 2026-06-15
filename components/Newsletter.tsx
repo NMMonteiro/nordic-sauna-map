@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LanguageCode } from '../types';
-import { supabase } from '../supabaseClient';
+import { db } from '../lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface NewsletterProps {
@@ -58,18 +59,20 @@ export const Newsletter = ({ lang }: NewsletterProps) => {
         setStatus('loading');
         console.log(`[DEBUG] Attempting subscription for ${email} with language: ${lang}`);
         try {
-            const { error } = await supabase
-                .from('newsletter_subscribers')
-                .insert([{ email, language: lang }]);
+            await addDoc(collection(db, 'newsletter_subscribers'), {
+                email,
+                language: lang,
+                status: 'subscribed',
+                subscribedAt: serverTimestamp()
+            });
 
-            if (error) throw error;
             setStatus('success');
             setEmail('');
         } catch (err: any) {
             console.error('Newsletter error:', err);
             setStatus('error');
-            setErrorMsg(err.message?.includes('unique constraint')
-                ? 'Already subscribed!'
+            setErrorMsg(err.message?.includes('permission-denied')
+                ? 'Check your connection or try again later.'
                 : t.error);
         }
     };

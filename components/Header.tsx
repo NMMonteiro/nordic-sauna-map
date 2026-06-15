@@ -1,9 +1,9 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User } from '@supabase/supabase-js';
+import { User } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Profile, LanguageCode } from '../types';
-import { supabase } from '../supabaseClient';
+import { auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import {
     User as UserIcon,
@@ -27,7 +27,7 @@ interface HeaderProps {
     setIsMenuOpen: (open: boolean) => void;
     setShowAuthModal: (show: boolean) => void;
     setShowAdminPanel: (show: boolean) => void;
-    setShowUserPanel: (show: boolean) => void;
+    setShowUserPanel: (show: boolean, tab?: 'overview' | 'submissions' | 'education' | 'blog' | 'settings') => void;
 }
 
 export const Header = ({
@@ -224,8 +224,17 @@ export const Header = ({
                         {user ? (
                             <div className="relative">
                                 <button
-                                    onMouseEnter={() => setUserDropdownOpen(true)}
-                                    onClick={() => setShowUserPanel(true)}
+                                    onMouseEnter={() => {
+                                        if (window.innerWidth >= 1024) setUserDropdownOpen(true);
+                                    }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (window.innerWidth < 1024) {
+                                            setUserDropdownOpen(prev => !prev);
+                                        } else {
+                                            setShowUserPanel(true);
+                                        }
+                                    }}
                                     className={cn(
                                         "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 group",
                                         isHeaderActive
@@ -256,6 +265,14 @@ export const Header = ({
                                     )} />
                                 </button>
 
+                                {/* Backdrop to close dropdown on click-away */}
+                                {userDropdownOpen && (
+                                    <div 
+                                        className="fixed inset-0 z-40" 
+                                        onClick={() => setUserDropdownOpen(false)}
+                                    />
+                                )}
+
                                 {/* User Quick Action Dropdown */}
                                 <AnimatePresence>
                                     {userDropdownOpen && (
@@ -263,8 +280,10 @@ export const Header = ({
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: 10 }}
-                                            onMouseLeave={() => setUserDropdownOpen(false)}
-                                            className="absolute top-full right-0 pt-3 w-[260px] pointer-events-auto"
+                                            onMouseLeave={() => {
+                                                if (window.innerWidth >= 1024) setUserDropdownOpen(false);
+                                            }}
+                                            className="absolute top-full right-0 pt-3 w-[260px] pointer-events-auto z-50"
                                         >
                                             <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-2xl rounded-2xl p-3 overflow-hidden">
                                                 <div className="px-3 py-2 mb-2 border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -291,7 +310,7 @@ export const Header = ({
                                                 )}
 
                                                 <button
-                                                    onClick={() => { setShowUserPanel(true); setUserDropdownOpen(false); }}
+                                                    onClick={() => { setShowUserPanel(true, 'settings'); setUserDropdownOpen(false); }}
                                                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold transition-all group"
                                                 >
                                                     <Settings className="size-4 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
@@ -300,7 +319,7 @@ export const Header = ({
 
                                                 <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                                                     <button
-                                                        onClick={() => supabase.auth.signOut()}
+                                                        onClick={() => auth.signOut()}
                                                         className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 text-red-600 rounded-xl text-sm font-bold transition-all group"
                                                     >
                                                         <LogOut className="size-4" />
@@ -400,7 +419,7 @@ export const Header = ({
                                             <span className="text-[10px] font-black uppercase tracking-widest">{t.dashboard}</span>
                                         </button>
                                         <button
-                                            onClick={() => supabase.auth.signOut()}
+                                            onClick={() => auth.signOut()}
                                             className="flex flex-col items-center gap-2 p-4 bg-red-50 rounded-2xl"
                                         >
                                             <LogOut className="size-6 text-red-500" />

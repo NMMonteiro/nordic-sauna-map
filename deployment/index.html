@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#2563EB" />
+  <script>
+    // Custom VH for mobile true full screen
+    const setVH = () => {
+      let vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', setVH);
+    setVH();
+  </script>
+  <link rel="icon" type="image/png" href="/logo.png" />
+  
+  <!-- Primary Meta Tags -->
+  <title>Nordic Sauna Map | A Shared Cultural Heritage</title>
+  <meta name="title" content="Nordic Sauna Map | A Shared Cultural Heritage" />
+  <meta name="description" content="Explore, locate, and discover traditional and modern public saunas across Finland, Sweden, and the Baltic/Nordic region. Your interactive guide to sauna culture." />
+  <meta name="keywords" content="sauna, nordic sauna, public saunas, finland saunas, sweden saunas, sauna map, public sauna database, sauna culture, traditional sauna" />
+  <meta name="robots" content="index, follow" />
+  <meta name="language" content="English" />
+  <meta name="author" content="Nordic Sauna Map" />
+  <link rel="canonical" href="https://nordicsaunamap.com/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://nordicsaunamap.com/" />
+  <meta property="og:title" content="Nordic Sauna Map | A Shared Cultural Heritage" />
+  <meta property="og:description" content="Explore, locate, and discover traditional and modern public saunas across Finland, Sweden, and the Baltic/Nordic region. Your interactive guide to sauna culture." />
+  <meta property="og:image" content="https://nordicsaunamap.com/logo.png" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://nordicsaunamap.com/" />
+  <meta property="twitter:title" content="Nordic Sauna Map | A Shared Cultural Heritage" />
+  <meta property="twitter:description" content="Explore, locate, and discover traditional and modern public saunas across Finland, Sweden, and the Baltic/Nordic region. Your interactive guide to sauna culture." />
+  <meta property="twitter:image" content="https://nordicsaunamap.com/logo.png" />
+
+  <!-- Google Search Console Verification -->
+  <meta name="google-site-verification" content="ceD6YUKDSh03Qmm7BVsqo_VuOzcU2It-O4yz5Ya-FDg" />
+
+  <!-- Google Analytics (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YOUR_MEASUREMENT_ID"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    // Initialize GA if the placeholder is replaced
+    if ('G-YOUR_MEASUREMENT_ID' !== 'G-YOUR_MEASUREMENT_ID' && 'G-YOUR_MEASUREMENT_ID' !== '') {
+      gtag('config', 'G-YOUR_MEASUREMENT_ID');
+    } else {
+      // Look for GA ID in window object or fallback config
+      const gaId = window.VITE_GA_MEASUREMENT_ID || '';
+      if (gaId) {
+        gtag('config', gaId);
+      }
+    }
+  </script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#2563EB",
+            "sky": "#7DD3FC",
+            "frost": "#F0F9FF",
+            "snow": "#FAFDFE",
+            "cedar": "#7C2D12",
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"]
+          },
+          backgroundImage: {
+            'nordic-sky': 'linear-gradient(180deg, #F0F9FF 0%, #FFFFFF 100%)',
+            'nordic-lake': 'linear-gradient(135deg, #7DD3FC 0%, #2563EB 100%)',
+          }
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .nordic-gradient {
+      background: linear-gradient(180deg, rgba(16, 22, 34, 0.8) 0%, rgba(16, 22, 34, 1) 100%);
+    }
+
+    /* Custom scrollbar for modal content */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* Leaflet overrides */
+    .leaflet-popup-content-wrapper {
+      background: white;
+      color: #1e293b;
+      border-radius: 1rem;
+      border: 1px solid rgba(125, 211, 252, 0.2);
+    }
+
+    .leaflet-popup-tip {
+      background: white;
+    }
+
+    .leaflet-container {
+      height: 100% !important;
+      width: 100% !important;
+      background: #f8fafc !important;
+    }
+
+    /* Leaflet custom marker cleanup */
+    .custom-leaflet-marker {
+      background: none !important;
+      border: none !important;
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/index-8pSIpYRn.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BGQ3Lw2q.css">
+</head>
+
+<body
+  class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display transition-colors duration-300">
+  <div id="root"></div>
+</body>
+
+</html>

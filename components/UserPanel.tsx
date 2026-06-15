@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { db, auth } from '../lib/firebase';
+import { collection, query, where, getDocs, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { Profile, Sauna } from '../types';
-import { User } from '@supabase/supabase-js';
+import { User } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EditArchiveModal } from './EditArchiveModal';
 import { EducationManager } from './EducationManager';
@@ -39,6 +40,7 @@ interface UserPanelProps {
     theme: 'light' | 'dark';
     setTheme: (theme: 'light' | 'dark') => void;
     setLang: (lang: 'sv' | 'fi' | 'en') => void;
+    initialTab?: UserTab;
 }
 
 type UserTab = 'overview' | 'submissions' | 'education' | 'blog' | 'settings';
@@ -52,11 +54,28 @@ export const UserPanel: React.FC<UserPanelProps> = ({
     onUpdate,
     theme,
     setTheme,
-    setLang
+    setLang,
+    initialTab
 }) => {
-    const [activeTab, setActiveTab] = useState<UserTab>('overview');
+    const [activeTab, setActiveTab] = useState<UserTab>(initialTab || 'overview');
     const [mySaunas, setMySaunas] = useState<Sauna[]>([]);
     const [editingSauna, setEditingSauna] = useState<Sauna | null>(null);
+
+    useEffect(() => {
+        if (initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [initialTab]);
+
+    const updateProfile = async (updates: { full_name?: string, avatar_url?: string }) => {
+        try {
+            await updateDoc(doc(db, 'profiles', user.uid), updates);
+            if (onUpdate) onUpdate();
+        } catch (err: any) {
+            console.error('Update Profile Error:', err);
+            alert('Failed to update profile: ' + err.message);
+        }
+    };
     const [materials, setMaterials] = useState<any[]>([]);
     const [myPosts, setMyPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -140,7 +159,7 @@ export const UserPanel: React.FC<UserPanelProps> = ({
         totalViews: 0
     });
 
-    const logoUrl = "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/images/Favicon.png";
+    const logoUrl = "/logo.png";
 
     useEffect(() => {
         fetchUserData();
@@ -149,37 +168,39 @@ export const UserPanel: React.FC<UserPanelProps> = ({
     const fetchUserData = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('saunas')
-                .select('*')
-                .eq('created_by', user.id)
-                .order('created_at', { ascending: false });
+            // Fetch Saunas
+            const saunasQuery = query(
+                collection(db, 'saunas'),
+                where('created_by', '==', user.uid),
+                orderBy('created_at', 'desc')
+            );
+            const saunasSnap = await getDocs(saunasQuery);
+            const subData = saunasSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Sauna[];
+            
+            setMySaunas(subData);
+            setStats({
+                totalSubmissions: subData.length,
+                approvedSubmissions: subData.filter(s => s.status === 'approved').length,
+                totalViews: subData.reduce((acc, curr) => acc + (Number(curr.views) || 0), 0)
+            });
 
-            if (!error && data) {
-                const subData = data as Sauna[];
-                setMySaunas(subData);
-                setStats({
-                    totalSubmissions: subData.length,
-                    approvedSubmissions: subData.filter(s => s.status === 'approved').length,
-                    totalViews: subData.reduce((acc, curr) => acc + (curr.views || 0), 0)
-                });
-            }
+            // Fetch Learning Materials
+            const matQuery = query(
+                collection(db, 'learning_materials'),
+                where('created_by', '==', user.uid),
+                orderBy('created_at', 'desc')
+            );
+            const matSnap = await getDocs(matQuery);
+            setMaterials(matSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-            const { data: matData } = await supabase
-                .from('learning_materials')
-                .select('*')
-                .eq('created_by', user.id)
-                .order('created_at', { ascending: false });
-
-            if (matData) setMaterials(matData);
-
-            const { data: postData } = await supabase
-                .from('blog_posts')
-                .select('*')
-                .eq('author_id', user.id)
-                .order('created_at', { ascending: false });
-
-            if (postData) setMyPosts(postData);
+            // Fetch Blog Posts
+            const postQuery = query(
+                collection(db, 'blog_posts'),
+                where('author_id', '==', user.uid),
+                orderBy('created_at', 'desc')
+            );
+            const postSnap = await getDocs(postQuery);
+            setMyPosts(postSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
         } catch (err) {
             console.error('Fetch User Data Error:', err);
@@ -190,8 +211,7 @@ export const UserPanel: React.FC<UserPanelProps> = ({
     const deleteSauna = async (saunaId: string) => {
         if (!confirm('Are you sure you want to permanently delete this contribution?')) return;
         try {
-            const { error } = await supabase.from('saunas').delete().eq('id', saunaId);
-            if (error) throw error;
+            await deleteDoc(doc(db, 'saunas', saunaId));
             if (onUpdate) onUpdate();
             fetchUserData();
         } catch (err: any) {
@@ -201,40 +221,32 @@ export const UserPanel: React.FC<UserPanelProps> = ({
 
     const saveSaunaEdit = async (sauna: Sauna) => {
         const { id, ...updateData } = sauna;
-        const { error } = await supabase
-            .from('saunas')
-            .update({
+        try {
+            await updateDoc(doc(db, 'saunas', id), {
                 ...updateData,
                 status: 'pending_approval',
                 updated_at: new Date().toISOString()
-            })
-            .eq('id', id);
-
-        if (error) {
-            alert(error.message);
-        } else {
+            });
             setEditingSauna(null);
             if (onUpdate) onUpdate();
             fetchUserData();
+        } catch (err: any) {
+            alert(err.message);
         }
     };
 
     const updatePreferences = async (updates: { theme?: 'light' | 'dark', language?: 'sv' | 'fi' | 'en' }) => {
         try {
-            const currentPrefs = profile?.metadata?.preferences || {};
+            const currentPrefs = profile?.metadata?.preferences || profile?.preferences || {};
             const nextPrefs = { ...currentPrefs, ...updates };
 
-            const { error } = await supabase
-                .from('profiles')
-                .update({
-                    metadata: {
-                        ...profile?.metadata,
-                        preferences: nextPrefs
-                    }
-                })
-                .eq('id', user.id);
-
-            if (error) throw error;
+            await updateDoc(doc(db, 'profiles', user.uid), {
+                metadata: {
+                    ...profile?.metadata,
+                    preferences: nextPrefs
+                },
+                preferences: nextPrefs // Redundancy for App.tsx compatibility
+            });
 
             if (updates.theme) setTheme(updates.theme);
             if (updates.language) setLang(updates.language);
@@ -406,6 +418,7 @@ export const UserPanel: React.FC<UserPanelProps> = ({
                                         theme={theme}
                                         lang={lang}
                                         updatePreferences={updatePreferences}
+                                        updateProfile={updateProfile}
                                     />
                                 )}
                             </motion.div>
@@ -549,7 +562,7 @@ const UserSubmissionsList = ({ saunas, lang, t, onEdit, deleteSauna }: any) => (
                     const m = (typeof s.media === 'string' ? JSON.parse(s.media) : s.media) || {};
                     const images = Array.isArray(m.images) ? m.images : [];
                     const displayImg = m.featured_image || images[0] || '';
-                    const resolveUrl = (url: string) => url?.startsWith('http') ? url : `https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/${url?.startsWith('/') ? url.slice(1) : url}`;
+                    const resolveUrl = (url: string) => url?.startsWith('http') ? url : `https://firebasestorage.googleapis.com/v0/b/nordic-saunas.firebasestorage.app/o/sauna-media%2F${url?.startsWith('/') ? url.slice(1) : url}?alt=media`;
                     const content = (typeof s.content === 'string' ? JSON.parse(s.content) : s.content)?.[lang] || { name: 'Archive Entry' };
 
                     return (
@@ -608,104 +621,167 @@ const UserSubmissionsList = ({ saunas, lang, t, onEdit, deleteSauna }: any) => (
     </div>
 );
 
-const UserSettingsView = ({ profile, t, user, theme, lang, updatePreferences }: any) => (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <div className="bg-white dark:bg-slate-900/50 p-12 lg:p-16 rounded-[4rem] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/30 dark:shadow-none">
-            <div className="flex items-center gap-4 mb-12">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                    <Settings className="size-5" />
+const UserSettingsView = ({ profile, t, user, theme, lang, updatePreferences, updateProfile }: any) => {
+    const [fullName, setFullName] = useState(profile?.full_name || '');
+    const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (profile?.full_name) setFullName(profile.full_name);
+        if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+    }, [profile]);
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!fullName.trim()) {
+            alert('Display name cannot be empty.');
+            return;
+        }
+        setSaving(true);
+        try {
+            await updateProfile({
+                full_name: fullName.trim(),
+                avatar_url: avatarUrl.trim()
+            });
+            alert('Profile updated successfully!');
+        } catch (err) {
+            // Error already logged/handled
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <form onSubmit={handleSave} className="bg-white dark:bg-slate-900/50 p-12 lg:p-16 rounded-[4rem] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/30 dark:shadow-none">
+                <div className="flex items-center gap-4 mb-12">
+                    <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <Settings className="size-5" />
+                    </div>
+                    <h3 className="text-xl font-black uppercase text-slate-900 dark:text-white tracking-tight">{t.profile_settings}</h3>
                 </div>
-                <h3 className="text-xl font-black uppercase text-slate-900 dark:text-white tracking-tight">{t.profile_settings}</h3>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                <div className="space-y-10">
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">{t.name}</label>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-5 rounded-3xl font-bold text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 shadow-inner">
-                            {profile?.full_name || 'Not set'}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                    <div className="space-y-10">
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">{t.name}</label>
+                            <input
+                                type="text"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-800/50 px-8 py-5 rounded-3xl font-bold text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 focus:outline-none focus:border-primary transition-all shadow-inner"
+                                placeholder="Enter display name"
+                            />
                         </div>
-                    </div>
 
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">{t.email}</label>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-5 rounded-3xl font-bold text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-slate-800 shadow-inner">
-                            {user?.email}
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Avatar Image URL</label>
+                            <input
+                                type="text"
+                                value={avatarUrl}
+                                onChange={(e) => setAvatarUrl(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-800/50 px-8 py-5 rounded-3xl font-bold text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 focus:outline-none focus:border-primary transition-all shadow-inner text-xs"
+                                placeholder="https://example.com/avatar.jpg"
+                            />
                         </div>
-                    </div>
 
-                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-6 block">Interface Preferences</label>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div className="space-y-3">
-                                <span className="text-[10px] font-black uppercase text-slate-300 tracking-widest ml-1">Theme</span>
-                                <div className="flex p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-                                    <button
-                                        onClick={() => updatePreferences({ theme: 'light' })}
-                                        className={cn(
-                                            "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                            theme === 'light' ? "bg-white text-slate-900 shadow-xl" : "text-slate-400 hover:text-slate-600"
-                                        )}
-                                    >
-                                        Light
-                                    </button>
-                                    <button
-                                        onClick={() => updatePreferences({ theme: 'dark' })}
-                                        className={cn(
-                                            "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                            theme === 'dark' ? "bg-slate-950 text-white shadow-xl" : "text-slate-400 hover:text-slate-300"
-                                        )}
-                                    >
-                                        Dark
-                                    </button>
-                                </div>
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">{t.email}</label>
+                            <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-5 rounded-3xl font-bold text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-slate-800 shadow-inner">
+                                {user?.email}
                             </div>
+                        </div>
 
-                            <div className="space-y-3">
-                                <span className="text-[10px] font-black uppercase text-slate-300 tracking-widest ml-1">Language</span>
-                                <div className="flex p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-                                    {(['en', 'sv', 'fi'] as const).map(l => (
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="w-full py-4 bg-primary text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-105 active:scale-95 shadow-xl shadow-primary/20 transition-all disabled:opacity-50 disabled:scale-100"
+                        >
+                            {saving ? 'Saving...' : 'Save Profile Details'}
+                        </button>
+
+                        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-6 block">Interface Preferences</label>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="space-y-3">
+                                    <span className="text-[10px] font-black uppercase text-slate-300 tracking-widest ml-1">Theme</span>
+                                    <div className="flex p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
                                         <button
-                                            key={l}
-                                            onClick={() => updatePreferences({ language: l })}
+                                            type="button"
+                                            onClick={() => updatePreferences({ theme: 'light' })}
                                             className={cn(
-                                                "flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl",
-                                                lang === l ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+                                                "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                theme === 'light' ? "bg-white text-slate-900 shadow-xl" : "text-slate-400 hover:text-slate-600"
                                             )}
                                         >
-                                            {l}
+                                            Light
                                         </button>
-                                    ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => updatePreferences({ theme: 'dark' })}
+                                            className={cn(
+                                                "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                theme === 'dark' ? "bg-slate-950 text-white shadow-xl" : "text-slate-400 hover:text-slate-300"
+                                            )}
+                                        >
+                                            Dark
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <span className="text-[10px] font-black uppercase text-slate-300 tracking-widest ml-1">Language</span>
+                                    <div className="flex p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                                        {(['en', 'sv', 'fi'] as const).map(l => (
+                                            <button
+                                                type="button"
+                                                key={l}
+                                                onClick={() => updatePreferences({ language: l })}
+                                                className={cn(
+                                                    "flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl",
+                                                    lang === l ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+                                                )}
+                                            >
+                                                {l}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="bg-slate-50/50 dark:bg-slate-800/30 rounded-[3rem] p-12 flex flex-col items-center justify-center text-center border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:scale-110 transition-transform duration-1000">
-                        <ShieldCheck className="size-48" />
-                    </div>
-                    <div className="size-32 rounded-[2.5rem] bg-white dark:bg-slate-800 shadow-2xl flex items-center justify-center text-primary font-black text-4xl mb-8 border border-white dark:border-slate-700">
-                        {profile?.full_name?.[0]}
-                    </div>
-                    <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-3">{profile?.full_name}</h4>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-10">{profile?.role}</p>
+                    <div className="bg-slate-50/50 dark:bg-slate-800/30 rounded-[3rem] p-12 flex flex-col items-center justify-center text-center border border-slate-100 dark:border-slate-800 relative overflow-hidden group h-fit self-center">
+                        <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:scale-110 transition-transform duration-1000">
+                            <ShieldCheck className="size-48" />
+                        </div>
+                        <div className="size-32 rounded-[2.5rem] bg-white dark:bg-slate-800 shadow-2xl flex items-center justify-center text-primary font-black text-4xl mb-8 border border-white dark:border-slate-700 overflow-hidden">
+                            {avatarUrl ? (
+                                <img src={avatarUrl} className="w-full h-full object-cover" alt="" onError={(e: any) => { e.target.style.display = 'none'; }} />
+                            ) : profile?.avatar_url ? (
+                                <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" />
+                            ) : (
+                                fullName?.[0] || profile?.full_name?.[0] || 'U'
+                            )}
+                        </div>
+                        <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-3 truncate max-w-[200px]">{fullName || profile?.full_name || 'Anonymous'}</h4>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-10">{profile?.role}</p>
 
-                    <div className="flex flex-col gap-4 w-full px-6">
-                        <div className="px-6 py-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center gap-2">
-                            <div className="size-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                            Active Profile
+                        <div className="flex flex-col gap-4 w-full px-6">
+                            <div className="px-6 py-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center gap-2">
+                                <div className="size-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                Active Profile
+                            </div>
                         </div>
                     </div>
                 </div>
+            </form>
+
+            <div className="p-8 bg-slate-50 dark:bg-slate-900/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 flex items-start gap-4">
+                <Clock className="size-5 text-slate-300 shrink-0" />
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium leading-relaxed italic">{t.locked}</p>
             </div>
         </div>
-
-        <div className="p-8 bg-slate-50 dark:bg-slate-900/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 flex items-start gap-4">
-            <Clock className="size-5 text-slate-300 shrink-0" />
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium leading-relaxed italic">{t.locked}</p>
-        </div>
-    </div>
-);
+    );
+};

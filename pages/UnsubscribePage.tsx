@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs, updateDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { LanguageCode } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertCircle, Loader2, Home, Heart, MailX, MoveLeft, Sparkles } from 'lucide-react';
@@ -27,28 +28,30 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
             }
 
             try {
-                // 1. Try to find and unsubscribe from dedicated list
-                const { data: subData } = await supabase
-                    .from('newsletter_subscribers')
-                    .select('id')
-                    .eq('email', email)
-                    .single();
+                // 1. Try to find and unsubscribe from dedicated list in Firestore
+                const subscribersRef = collection(db, 'newsletter_subscribers');
+                const q = query(subscribersRef, where('email', '==', email));
+                const querySnapshot = await getDocs(q);
 
-                if (subData) {
-                    await supabase
-                        .from('newsletter_subscribers')
-                        .update({ status: 'unsubscribed' })
-                        .eq('email', email);
+                if (!querySnapshot.empty) {
+                    // Update all matching documents (usually just one)
+                    const updatePromises = querySnapshot.docs.map(document => 
+                        updateDoc(doc(db, 'newsletter_subscribers', document.id), {
+                            status: 'unsubscribed',
+                            unsubscribedAt: serverTimestamp()
+                        })
+                    );
+                    await Promise.all(updatePromises);
                 } else {
-                    // 2. If they are a member but not in subscriber list, 
+                    // 2. If they are not in subscriber list, 
                     // we create an 'unsubscribed' record for them to ensure 
                     // future newsletters skip them
-                    await supabase
-                        .from('newsletter_subscribers')
-                        .insert([{
-                            email: email,
-                            status: 'unsubscribed'
-                        }]);
+                    await addDoc(subscribersRef, {
+                        email: email,
+                        status: 'unsubscribed',
+                        unsubscribedAt: serverTimestamp(),
+                        language: lang
+                    });
                 }
 
                 setStatus('success');
@@ -59,7 +62,7 @@ export const UnsubscribePage = ({ lang }: UnsubscribePageProps) => {
         };
 
         unsubscribe();
-    }, [email, id]);
+    }, [email, id, lang]);
 
     const t = {
         en: {

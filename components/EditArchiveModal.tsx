@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { storage } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Sauna, AudioTrack, VideoClip } from '../types';
 import { LocationPicker } from './LocationPicker';
 import { cn } from '../lib/utils';
@@ -41,6 +42,7 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
             },
             metadata: { region: '', type: 'wood', country: 'Finland', ...sauna.metadata },
             coordinates: { lat: 64.0, lng: 26.0, ...sauna.coordinates },
+            contact: { website: '', phone: '', address: '', email: '', ...sauna.contact },
             media: {
                 images: images,
                 audio_interviews: sanitizedAudio,
@@ -56,20 +58,14 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
 
         setUploading(true);
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
+        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
         const folder = type === 'video' ? 'Videos' : type + 's';
-        const filePath = `${folder}/${fileName}`;
+        const filePath = `sauna-media/${folder}/${fileName}`;
 
         try {
-            const { error: uploadError } = await supabase.storage
-                .from('sauna-media')
-                .upload(filePath, file);
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('sauna-media')
-                .getPublicUrl(filePath);
+            const storageRef = ref(storage, filePath);
+            await uploadBytes(storageRef, file);
+            const publicUrl = await getDownloadURL(storageRef);
 
             const newMedia = { ...editedData.media };
             if (type === 'image' && typeof idx === 'number') {
@@ -163,11 +159,38 @@ export const EditArchiveModal: React.FC<EditArchiveModalProps> = ({ sauna, lang,
                                         <option value="tent">Tent Sauna</option>
                                     </select>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Status</label>
+                                    <select
+                                        className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+                                        value={editedData.status}
+                                        onChange={(e) => setEditedData({ ...editedData, status: e.target.value as any })}
+                                    >
+                                        <option value="pending_approval">Pending Approval</option>
+                                        <option value="approved">Approved</option>
+                                        <option value="rejected">Rejected</option>
+                                    </select>
+                                </div>
                                 <InputField
                                     label="Reference ID (Unique)"
                                     value={editedData.sauna_id}
                                     onChange={(val) => setEditedData({ ...editedData, sauna_id: val })}
                                 />
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Website</label>
+                                    <div className="relative">
+                                        <input
+                                            className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 focus:ring-2 focus:ring-primary shadow-sm pr-20"
+                                            value={editedData.contact.website}
+                                            onChange={(e) => setEditedData({ ...editedData, contact: { ...editedData.contact, website: e.target.value } })}
+                                        />
+                                        {editedData.contact.website && (
+                                            <a href={editedData.contact.website} target="_blank" rel="noopener noreferrer" className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase bg-primary text-white px-3 py-2 rounded-xl hover:bg-primary/90 transition-all">
+                                                Open
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-2">

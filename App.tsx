@@ -18,8 +18,9 @@ import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { CookiePolicyPage } from './pages/CookiePolicyPage';
 import { UnsubscribePage } from './pages/UnsubscribePage';
 import { BlogPostEditor } from './components/BlogPostEditor';
-import { supabase } from './supabaseClient';
-import { User } from '@supabase/supabase-js';
+import { auth, db } from './lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 import { Map as MapIcon, Search, PlusCircle, ArrowRight, Compass, Shield, Wind } from 'lucide-react';
 import { cn } from './lib/utils';
 import { MapView } from './components/MapView';
@@ -362,6 +363,13 @@ const App = () => {
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showAdminPanel, setShowAdminPanel] = useState(false);
     const [showUserPanel, setShowUserPanel] = useState(false);
+    const [userPanelTab, setUserPanelTab] = useState<'overview' | 'submissions' | 'education' | 'blog' | 'settings'>('overview');
+    const handleShowUserPanel = (show: boolean, tab: 'overview' | 'submissions' | 'education' | 'blog' | 'settings' = 'overview') => {
+        if (show) {
+            setUserPanelTab(tab);
+        }
+        setShowUserPanel(show);
+    };
     const [showBlogEditor, setShowBlogEditor] = useState(false);
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
@@ -376,41 +384,33 @@ const App = () => {
 
     // Auth Session Manager
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchProfile(session.user.id);
-            }
-            fetchSaunas();
-        });
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchProfile(session.user.id);
+        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            setUser(firebaseUser);
+            if (firebaseUser) {
+                fetchProfile(firebaseUser.uid);
             } else {
                 setProfile(null);
             }
             fetchSaunas();
         });
 
-        return () => subscription.unsubscribe();
+        return () => unsubscribe();
     }, []);
 
     const fetchProfile = async (userId: string) => {
         try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .single();
-            if (error) throw error;
-            setProfile(data);
+            const docRef = doc(db, 'profiles', userId);
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                const data = docSnap.data() as Profile;
+                setProfile(data);
 
-            // Apply saved preferences if they exist
-            const prefs = data.metadata?.preferences || data.preferences || {};
-            if (prefs.theme) setTheme(prefs.theme);
-            if (prefs.language) setLang(prefs.language);
+                // Apply saved preferences if they exist
+                const prefs = data.metadata?.preferences || data.preferences || {};
+                if (prefs.theme) setTheme(prefs.theme);
+                if (prefs.language) setLang(prefs.language);
+            }
         } catch (err) {
             console.error('Profile fetch failed:', err);
         }
@@ -419,14 +419,11 @@ const App = () => {
     const fetchSaunas = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('saunas')
-                .select('*');
-
-            if (error) throw error;
+            const querySnapshot = await getDocs(collection(db, 'saunas'));
+            const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             if (data && data.length > 0) {
-                const dbSaunas = (data || []).map(s => {
+                const dbSaunas = (data || []).map((s: any) => {
                     // Resilient parsing for JSON fields
                     const metadata = typeof s.metadata === 'string' ? JSON.parse(s.metadata) : (s.metadata || {});
                     const coordinates = typeof s.coordinates === 'string' ? JSON.parse(s.coordinates) : (s.coordinates || {});
@@ -517,7 +514,7 @@ const App = () => {
             setIsMenuOpen={setIsMenuOpen}
             setShowAuthModal={setShowAuthModal}
             setShowAdminPanel={setShowAdminPanel}
-            setShowUserPanel={setShowUserPanel}
+            setShowUserPanel={handleShowUserPanel}
         >
             <Snowfall />
             <Routes>
@@ -566,6 +563,7 @@ const App = () => {
                         setTheme={setTheme}
                         setLang={setLang}
                         onUpdate={fetchSaunas}
+                        initialTab={userPanelTab}
                     />
                 )}
                 {showBlogEditor && user && <BlogPostEditor lang={lang} user={user} onClose={() => setShowBlogEditor(false)} onSuccess={() => setShowBlogEditor(false)} />}

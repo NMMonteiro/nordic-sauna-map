@@ -4,6 +4,9 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 
+// Inject GA Measurement ID to window context for tracking
+(window as any).VITE_GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
+
 console.log("Archive system bootstrapping...");
 const rootElement = document.getElementById('root');
 if (!rootElement) {

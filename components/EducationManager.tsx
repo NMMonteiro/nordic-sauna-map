@@ -1,5 +1,19 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { db, storage } from '../lib/firebase';
+import { 
+    collection, 
+    addDoc, 
+    updateDoc, 
+    deleteDoc, 
+    doc, 
+    serverTimestamp 
+} from 'firebase/firestore';
+import { 
+    ref, 
+    uploadBytes, 
+    getDownloadURL 
+} from 'firebase/storage';
+import { resolveMediaUrl } from '../lib/storage';
 
 interface EducationManagerProps {
     materials: any[];
@@ -37,11 +51,16 @@ export const EducationManager: React.FC<EducationManagerProps> = ({ materials, t
         if (!e.target.files) return;
         setUploading(true);
         const file = e.target.files[0];
-        const path = `thumbnails/${Date.now()}-${file.name}`;
-        const { error } = await supabase.storage.from('education').upload(path, file);
-        if (!error) {
-            const { data } = supabase.storage.from('education').getPublicUrl(path);
-            setFormData({ ...formData, thumbnail: data.publicUrl });
+        const path = `education/thumbnails/${Date.now()}-${file.name}`;
+        const storageRef = ref(storage, path);
+        
+        try {
+            await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(storageRef);
+            setFormData({ ...formData, thumbnail: downloadURL });
+        } catch (error) {
+            console.error('Thumbnail upload error:', error);
+            alert('Image upload failed. Please try again.');
         }
         setUploading(false);
     };
@@ -53,19 +72,22 @@ export const EducationManager: React.FC<EducationManagerProps> = ({ materials, t
 
         console.log('Attempting to upload resource:', file.name, file.size, file.type);
 
-        const path = `resources/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
-        const { data, error } = await supabase.storage.from('education').upload(path, file, {
-            cacheControl: '3600',
-            upsert: false
-        });
+        const path = `education/resources/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+        const storageRef = ref(storage, path);
 
-        if (error) {
+        try {
+            await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(storageRef);
+            console.log('Upload successful:', downloadURL);
+            setFormData(prev => ({ 
+                ...prev, 
+                file_path: path,
+                url: downloadURL 
+            }));
+            alert('File uploaded! You can now save the resource.');
+        } catch (error: any) {
             console.error('Upload error:', error);
             alert(`Upload failed: ${error.message}`);
-        } else {
-            console.log('Upload successful:', data);
-            setFormData(prev => ({ ...prev, file_path: path }));
-            alert('File uploaded successfully to storage!');
         }
         setUploading(false);
     };
@@ -73,7 +95,10 @@ export const EducationManager: React.FC<EducationManagerProps> = ({ materials, t
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        let finalData: any = { ...formData };
+        let finalData: any = { 
+            ...formData,
+            updated_at: serverTimestamp()
+        };
 
         if (formData.type === 'video' && formData.url && !formData.thumbnail) {
             const ytId = getYouTubeId(formData.url);
@@ -82,32 +107,27 @@ export const EducationManager: React.FC<EducationManagerProps> = ({ materials, t
             }
         }
 
-        if (editingId) {
-            const { error } = await supabase
-                .from('learning_materials')
-                .update(finalData)
-                .eq('id', editingId);
-
-            if (!error) {
+        try {
+            if (editingId) {
+                const docRef = doc(db, 'learning_materials', editingId);
+                await updateDoc(docRef, finalData);
                 setShowForm(false);
                 setEditingId(null);
                 onRefresh();
                 setFormData({ title: '', description: '', type: 'pdf', url: '', file_path: '', thumbnail: '' });
-                alert('Resource updated successfully!');
+                alert('Resource updated!');
             } else {
-                alert(`Update failed: ${error.message}`);
-            }
-        } else {
-            finalData.created_by = profile?.id;
-            const { error } = await supabase.from('learning_materials').insert(finalData);
-            if (!error) {
+                finalData.created_at = serverTimestamp();
+                finalData.created_by = profile?.id;
+                await addDoc(collection(db, 'learning_materials'), finalData);
                 setShowForm(false);
                 onRefresh();
                 setFormData({ title: '', description: '', type: 'pdf', url: '', file_path: '', thumbnail: '' });
-                alert('Resource created successfully!');
-            } else {
-                alert(`Creation failed: ${error.message}`);
+                alert('Resource added!');
             }
+        } catch (error: any) {
+            console.error('Submit error:', error);
+            alert(`Something went wrong: ${error.message}`);
         }
     };
 
@@ -126,9 +146,12 @@ export const EducationManager: React.FC<EducationManagerProps> = ({ materials, t
 
     const deleteMaterial = async (id: string) => {
         if (!confirm('Delete this resource?')) return;
-        const { error } = await supabase.from('learning_materials').delete().eq('id', id);
-        if (error) alert(`Delete failed: ${error.message}`);
-        onRefresh();
+        try {
+            await deleteDoc(doc(db, 'learning_materials', id));
+            onRefresh();
+        } catch (error: any) {
+            alert(`Delete failed: ${error.message}`);
+        }
     };
 
     return (
@@ -159,7 +182,7 @@ export const EducationManager: React.FC<EducationManagerProps> = ({ materials, t
                                 <input type="file" onChange={handleThumbnailUpload} className="hidden" id="admin-thumb-upload" accept="image/*" />
                                 <label htmlFor="admin-thumb-upload" className="block size-48 rounded-[2rem] bg-slate-50 border-2 border-dashed border-slate-200 overflow-hidden group-hover:border-primary/30 transition-all cursor-pointer">
                                     {formData.thumbnail ? (
-                                        <img src={formData.thumbnail} className="w-full h-full object-cover" />
+                                        <img src={resolveMediaUrl(formData.thumbnail, 'education')} className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
                                             <span className="material-symbols-outlined text-4xl mb-2">add_photo_alternate</span>
@@ -211,7 +234,7 @@ export const EducationManager: React.FC<EducationManagerProps> = ({ materials, t
                         <div className="md:col-span-2 flex justify-end gap-3 mt-4">
                             <button type="button" onClick={() => setShowForm(false)} className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Cancel</button>
                             <button type="submit" disabled={uploading} className={`bg-nordic-lake text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all ${uploading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}>
-                                {uploading ? 'Processing...' : (editingId ? 'Update Resource' : 'Save Resource')}
+                                {uploading ? 'Uploading...' : (editingId ? 'Update' : 'Save')}
                             </button>
                         </div>
                     </form>

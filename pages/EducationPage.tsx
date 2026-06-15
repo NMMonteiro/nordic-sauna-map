@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { db, storage } from '../lib/firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { ref, getDownloadURL } from 'firebase/storage';
 import { LearningMaterial, MaterialType, LanguageCode } from '../types';
 import { cn } from '../lib/utils';
+import { resolveMediaUrl } from '../lib/storage';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
@@ -16,17 +19,16 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
 
     const fetchMaterials = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('learning_materials')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Error fetching materials:', error);
-        } else {
+        try {
+            const q = query(collection(db, 'learning_materials'), orderBy('created_at', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as LearningMaterial[];
             setMaterials(data || []);
+        } catch (error) {
+            console.error('Error fetching materials:', error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const filteredMaterials = filter === 'all'
@@ -51,19 +53,19 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
         }
 
         try {
-            const { data, error } = await supabase.storage.from('education').download(material.file_path);
-            if (error) throw error;
+            // Use centralized utility to resolve the URL
+            // If it's a file_path, resolve it from the 'education' bucket
+            // If it's a legacy Supabase URL, the utility will convert it
+            let downloadUrl = material.file_path 
+                ? resolveMediaUrl(material.file_path, 'education')
+                : resolveMediaUrl(material.url, 'education');
 
-            const blobUrl = window.URL.createObjectURL(data);
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.setAttribute('download', material.file_path.split('/').pop() || 'resource');
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(blobUrl);
+            if (downloadUrl) {
+                window.open(downloadUrl, '_blank');
+            }
         } catch (error) {
             console.error('Download failed:', error);
+            alert('Failed to access the resource. It may have been moved or deleted.');
         }
     };
 
@@ -162,7 +164,7 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                             >
                                 <div className="aspect-[4/3] bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
                                     <img
-                                        src={material.thumbnail || {
+                                        src={resolveMediaUrl(material.thumbnail, 'education') || {
                                             pdf: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=800',
                                             presentation: 'https://images.unsplash.com/photo-1517245385169-d2089c6d6d4a?auto=format&fit=crop&q=80&w=800',
                                             video: 'https://images.unsplash.com/photo-1492724441997-5dc865305da7?auto=format&fit=crop&q=80&w=800',
@@ -264,7 +266,7 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                                 </div>
                             ) : selectedMaterial.type === 'pdf' ? (
                                 <iframe
-                                    src={selectedMaterial.url || (selectedMaterial.file_path ? `${supabase.storage.from('education').getPublicUrl(selectedMaterial.file_path).data.publicUrl}#toolbar=0` : '')}
+                                    src={selectedMaterial.url || ''}
                                     className="w-full h-full border-none"
                                 ></iframe>
                             ) : selectedMaterial.type === 'presentation' ? (
@@ -294,7 +296,7 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                                     <h3 className="text-2xl font-black text-slate-900 mb-4 uppercase">Resource Available</h3>
                                     <p className="text-slate-500 max-w-md mb-8">This {selectedMaterial.type} resource is available for download or viewing.</p>
                                     <a
-                                        href={selectedMaterial.url || (selectedMaterial.file_path ? supabase.storage.from('education').getPublicUrl(selectedMaterial.file_path).data.publicUrl : '#')}
+                                        href={selectedMaterial.url || '#'}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="bg-primary text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-transform"

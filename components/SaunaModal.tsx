@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Maximize2
 } from 'lucide-react';
+import { resolveMediaUrl } from '../lib/storage';
 import { cn } from '../lib/utils';
 
 interface SaunaModalProps {
@@ -32,21 +33,22 @@ export const SaunaModal: React.FC<SaunaModalProps> = ({ sauna, lang, onClose }) 
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const STORAGE_URL = "https://hgpcpontdxjsbqsjiech.supabase.co/storage/v1/object/public/sauna-media/";
-
-  const resolveUrl = (url: string | undefined) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
-    return `${STORAGE_URL}${cleanUrl}`;
-  };
+  const resolveUrl = (url: string | undefined) => resolveMediaUrl(url, 'sauna-media');
 
   const m = (typeof sauna.media === 'string' ? JSON.parse(sauna.media) : sauna.media) || {};
 
   const rawImages = Array.isArray(m.images) ? m.images :
     (typeof m.image === 'string' ? [m.image] : []);
   const images = rawImages.map(resolveUrl);
-  const featuredImage = resolveUrl(m.featured_image || (typeof m.image === 'string' ? m.image : images[0]));
+  let featuredImageRaw = m.featured_image || (typeof m.image === 'string' ? m.image : images[0]);
+  if (featuredImageRaw === '[URL]') featuredImageRaw = '';
+  let featuredImage = resolveUrl(featuredImageRaw);
+  if (!featuredImage && sauna.contact?.website && sauna.contact.website !== '[URL]') {
+    featuredImage = `https://v1.screenshot.11ty.dev/${encodeURIComponent(sauna.contact.website)}/opengraph/`;
+  }
+  if (!featuredImage) {
+    featuredImage = 'https://placehold.co/1200x800/f1f5f9/94a3b8?text=Image+Not+Found';
+  }
 
   const rawAudio = Array.isArray(m.audio_interviews) ? m.audio_interviews :
     (Array.isArray(m.audio) ? m.audio :

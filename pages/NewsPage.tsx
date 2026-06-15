@@ -27,7 +27,7 @@ export const NewsPage = ({ lang }: NewsPageProps) => {
 
     useEffect(() => {
         // Fetch posts from Curator.io API
-        fetch('https://api.curator.io/v1/feeds/39fd0fd7-ebb9-432d-af60-d95b6d6512e8/posts?limit=100')
+        fetch('https://api.curator.io/v1/feeds/baf8674c-4952-4fee-8e15-3ed605531af7/posts?limit=100')
             .then(res => res.json())
             .then(data => {
                 if (data.posts) {

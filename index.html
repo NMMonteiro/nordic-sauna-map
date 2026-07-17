@@ -21,6 +21,19 @@
   </script>
   <link rel="icon" type="image/png" href="/logo.png" />
   
+  <!-- PWA & Apple Web App Meta Tags -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="apple-mobile-web-app-title" content="Sauna Map" />
+  <link rel="apple-touch-icon" href="/logo.png" />
+  
+  <script>
+    // Capture the PWA install prompt event as early as possible
+    window.deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredPrompt = e;
+    });
+  </script>
   <!-- Primary Meta Tags -->
   <title>Nordic Sauna Map | A Shared Cultural Heritage</title>
   <meta name="title" content="Nordic Sauna Map | A Shared Cultural Heritage" />
@@ -156,6 +169,13 @@
   class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display transition-colors duration-300">
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 
 </html>

@@ -70,7 +70,7 @@ export const Footer = ({ lang }: FooterProps) => {
                                         : 'The project “Nordic Sauna Map” was funded by Kulturfonden för Sverige och Finland.'}
                             </p>
                             <a
-                                href="https://www.kielilahettilaat.fi/kulturfonden-for-sverige-och-finland/"
+                                href="https://fondensverigefinland.org/"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="group flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"

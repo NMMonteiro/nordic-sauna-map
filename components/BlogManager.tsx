@@ -24,7 +24,7 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ posts, t, onRefresh, p
     };
 
     const deletePost = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this story?')) return;
+        if (!confirm('Are you sure you want to delete this post?')) return;
         try {
             await deleteDoc(doc(db, 'blog_posts', id));
             onRefresh();
@@ -56,7 +56,7 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ posts, t, onRefresh, p
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-black text-slate-900 uppercase">
-                    {t.blog || 'Stories'}
+                    {t.blog || 'Blog Posts'}
                 </h2>
                 <button
                     onClick={() => {
@@ -65,13 +65,13 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ posts, t, onRefresh, p
                     }}
                     className="bg-primary text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-all"
                 >
-                    Add New Story
+                    Add New Post
                 </button>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
                 {posts.length === 0 ? (
-                    <div className="py-20 text-center text-slate-300 font-black uppercase tracking-widest">No stories yet</div>
+                    <div className="py-20 text-center text-slate-300 font-black uppercase tracking-widest">No posts yet</div>
                 ) : posts.map((p: any) => (
                     <div key={p.id} className="bg-white p-4 lg:p-6 rounded-[2rem] border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-6 group hover:shadow-xl hover:shadow-slate-200/50 transition-all">
                         <div className="flex items-center gap-6 w-full">
@@ -104,7 +104,7 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ posts, t, onRefresh, p
                                     </span>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.category} • {p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString() : new Date(p.created_at).toLocaleDateString()}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.category} • {p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString() : (p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Unknown')}</p>
                                     {(p.author_name || p.profiles?.full_name) && (
                                         <span className="text-[10px] font-black text-primary uppercase tracking-tighter self-start">by {p.author_name || p.profiles?.full_name}</span>
                                     )}

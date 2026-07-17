@@ -1,9 +1,27 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && firestore.get(/databases/(default)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /sauna-images/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    
+    match /blog-media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }

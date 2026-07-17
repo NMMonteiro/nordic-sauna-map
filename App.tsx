@@ -17,6 +17,8 @@ import { PartnersPage } from './pages/PartnersPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { CookiePolicyPage } from './pages/CookiePolicyPage';
 import { UnsubscribePage } from './pages/UnsubscribePage';
+import { ComparativeReportPage } from './pages/ComparativeReportPage';
+import { ProverbsPage } from './pages/ProverbsPage';
 import { BlogPostEditor } from './components/BlogPostEditor';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -182,25 +184,28 @@ const HomePage = ({
             </section>
 
             {/* Features Stagger Section */}
-            <section className="py-20 lg:py-40 bg-[var(--bg-main)] relative overflow-hidden">
+            <section className="py-16 lg:py-24 bg-[var(--bg-main)] relative overflow-hidden">
                 <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
                     <FeatureCard
                         icon={<Compass className="size-6" />}
                         title={lang === 'sv' ? 'Levande Historia' : lang === 'fi' ? 'Elävä Historia' : 'Living History'}
                         desc={lang === 'sv' ? 'Digitaliserar hundratals år av badtraditioner för den moderna eran.' : lang === 'fi' ? 'Satojen vuosien kylpyperinteiden digitointi nykyaikaa varten.' : 'Digitizing centuries of bathing traditions for the modern era.'}
                         delay={0.1}
+                        imgSrc="/card_history.png"
                     />
                     <FeatureCard
                         icon={<Shield className="size-6" />}
                         title={lang === 'sv' ? 'Kulturarv' : lang === 'fi' ? 'Kulttuuriperintö' : 'Cultural Heritage'}
                         desc={lang === 'sv' ? 'Backas av Kulturfonden för Sverige och Finland för att främja gränsöverskridande samarbete.' : lang === 'fi' ? 'Suomalais-ruotsalaisen kulttuurirahaston tukema hanke rajatyylisen yhteistyön edistämiseksi.' : 'Backed by Kulturfonden för Sverige och Finland to foster cross-border cultural collaboration.'}
                         delay={0.2}
+                        imgSrc="/card_heritage.png"
                     />
                     <FeatureCard
                         icon={<Wind className="size-6" />}
                         title={lang === 'sv' ? 'Välmående' : lang === 'fi' ? 'Hyvinvointi' : 'Wellbeing'}
                         desc={lang === 'sv' ? 'Upplev den hälsofrämjande magin bakom den nordiska bastun.' : lang === 'fi' ? 'Koe pohjoismaisen saunan terveyttä edistävä taika.' : 'Experience the health-promoting magic behind the Nordic sauna.'}
                         delay={0.3}
+                        imgSrc="/card_wellbeing.png"
                     />
                 </div>
             </section>
@@ -292,7 +297,7 @@ const HomePage = ({
             </section>
 
             {/* Contribute Banner - Premium Style */}
-            <section className="py-32 lg:py-60 relative overflow-hidden bg-slate-900">
+            <section className="py-16 lg:py-24 relative overflow-hidden bg-slate-900">
                 <div className="absolute inset-0 z-0">
                     <img src="https://images.unsplash.com/photo-1519783166144-83936959822a?auto=format&fit=crop&q=80" className="w-full h-full object-cover opacity-20 scale-105" alt="Sauna texture" />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/10 to-transparent" />
@@ -304,20 +309,20 @@ const HomePage = ({
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
                     >
-                        <h2 className="text-6xl md:text-[8rem] font-black text-white mb-10 tracking-tighter leading-none">
+                        <h2 className="text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 tracking-tighter leading-none">
                             JOIN THE <br /><span className="text-primary italic">LEGACY.</span>
                         </h2>
-                        <p className="text-xl md:text-2xl text-white/50 max-w-2xl mx-auto mb-20 font-light leading-relaxed">
+                        <p className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-10 font-light leading-relaxed">
                             {lang === 'sv'
                                 ? 'Bli en del av historien. Skicka in dina arkivbilder, berättelser och platser idag.'
                                 : 'Become part of history. Contribute your archival photos, stories, and locations to the digital archive map today.'}
                         </p>
                         <button
                             onClick={() => user ? setShowContributionForm(true) : setShowAuthModal(true)}
-                            className="group bg-primary text-white px-16 py-8 rounded-full font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-primary/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-6 mx-auto"
+                            className="group bg-primary text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 mx-auto"
                         >
                             {lang === 'sv' ? 'Bidra till kartan' : 'Add Sauna'}
-                            <div className="size-10 bg-white/20 rounded-full flex items-center justify-center -mr-4 group-hover:rotate-45 transition-transform">
+                            <div className="size-8 bg-white/20 rounded-full flex items-center justify-center -mr-2 group-hover:rotate-45 transition-transform">
                                 <PlusCircle className="size-5" />
                             </div>
                         </button>
@@ -328,19 +333,29 @@ const HomePage = ({
     );
 };
 
-const FeatureCard = ({ icon, title, desc, delay }: { icon: any, title: string, desc: string, delay: number }) => (
+const FeatureCard = ({ icon, title, desc, delay, imgSrc }: { icon: any, title: string, desc: string, delay: number, imgSrc: string }) => (
     <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ delay, duration: 0.8 }}
-        className="group p-12 rounded-[3.5rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 transition-all hover:shadow-2xl hover:shadow-slate-200/40 dark:hover:shadow-none"
+        className="group relative overflow-hidden rounded-[3.5rem] bg-slate-900 border border-slate-800 transition-all hover:shadow-2xl hover:-translate-y-2 flex flex-col min-h-[500px]"
     >
-        <div className="size-16 bg-slate-50 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center text-slate-900 dark:text-white shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-500 mb-10">
-            {icon}
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+            <img src={imgSrc} alt={title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-70 group-hover:opacity-100" />
+            {/* Dark gradient fading from transparent at top to very dark at bottom */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/80 to-transparent" />
         </div>
-        <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter uppercase">{title}</h3>
-        <p className="text-slate-400 leading-relaxed font-light text-lg">{desc}</p>
+        
+        {/* Content Section */}
+        <div className="relative z-10 p-10 flex flex-col justify-end flex-1">
+            <div className="size-16 bg-white/10 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-white border border-white/20 group-hover:bg-primary group-hover:border-primary transition-all duration-500 mb-8">
+                {icon}
+            </div>
+            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 tracking-tighter uppercase">{title}</h3>
+            <p className="text-white/70 leading-relaxed font-light text-lg">{desc}</p>
+        </div>
     </motion.div>
 );
 
@@ -539,6 +554,8 @@ const App = () => {
                 <Route path="/blog" element={<BlogPage lang={lang} user={user} profile={profile} onWritePost={() => setShowBlogEditor(true)} />} />
                 <Route path="/news" element={<NewsPage lang={lang} />} />
                 <Route path="/education" element={<EducationPage lang={lang} />} />
+                <Route path="/outputs/comparative-report" element={<ComparativeReportPage lang={lang} />} />
+                <Route path="/outputs/proverbs" element={<ProverbsPage lang={lang} />} />
                 <Route path="/about" element={<AboutPage lang={lang} />} />
                 <Route path="/partners" element={<PartnersPage lang={lang} />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage lang={lang} />} />

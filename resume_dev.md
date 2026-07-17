@@ -1,233 +1,176 @@
-# Nordic Sauna Map Development Status - Feb 6, 2026
+# Nordic Sauna Map Development Status - July 16, 2026
 
-## 🚀 Current Objective: Newsletter Delivery & Tracking System
-Successfully implemented and deployed a professional newsletter broadcast system with full tracking, premium UI/UX, and GDPR compliance.
-
----
-
-## ✅ Completed Tasks (Latest Session)
-
-### **1. Newsletter Delivery Fix**
-- **Root Cause Identified**: Missing `broadcasts` and `broadcast_recipients` database tables caused Edge Function crashes.
-- **Solution**: Created SQL migration (`20240205000000_create_broadcast_tracking.sql`) with proper RLS policies.
-- **Status**: ✅ SQL executed in Supabase Dashboard, tables now exist.
-
-### **2. API Key Configuration Fix**
-- **Issue**: "No API key found" error when calling Edge Functions.
-- **Solution**: 
-  - Exported `supabaseUrl` and `supabaseAnonKey` from `supabaseClient.ts`.
-  - Updated `NewsletterManager.tsx` to use hardcoded constants instead of internal config extraction.
-  - Ensured `apikey` header is always present in fetch requests.
-- **Status**: ✅ Deployed and tested.
-
-### **3. Premium Unsubscribe Experience**
-- **Created**: Completely redesigned `pages/UnsubscribePage.tsx` with:
-  - Premium card layout with animated states (loading, success, error).
-  - Emotional messaging: "Sorry to see you go!" (localized in EN, SV, FI).
-  - Background aurora effects and smooth transitions.
-  - 1.5s artificial delay for premium feel.
-- **Layout Update**: Modified `components/Layout.tsx` to hide Newsletter CTA on `/unsubscribe` route.
-- **Status**: ✅ Deployed to production.
-
-### **4. Broadcast History & Reporting**
-- **Database Schema**: 
-  - `broadcasts` table tracks all newsletter dispatches with metadata.
-  - `broadcast_recipients` table logs individual email delivery status.
-  - Admin-only RLS policies enforced.
-- **UI Features**:
-  - History view in Newsletter Manager showing all past broadcasts.
-  - Detailed delivery reports with success/failure counts.
-  - CSV export functionality for recipient logs.
-  - Diagnostics panel showing current user's email and role.
-- **Status**: ✅ Fully functional.
-
-### **5. Edge Function Deployment**
-- **Deployed Functions**:
-  - `send-broadcast` (125.9kB) - Newsletter dispatch with tracking.
-  - `notify` (127.4kB) - Multi-purpose notification system.
-- **Configuration**: 
-  - `RESEND_API_KEY` configured in Supabase Secrets.
-  - `SITE_URL` set to `https://nordicsaunamap.com`.
-- **Status**: ✅ Live on Supabase project `hgpcpontdxjsbqsjiech`.
-
-### **6. Production Build & Deployment**
-- **Git**: 
-  - Committed all changes: `feat: enhance newsletter tracking and premium unsubscribe experience`.
-  - Pushed to `origin/master`.
-- **Build**: 
-  - Ran `npm run build` successfully.
-  - Generated optimized `dist/` folder with:
-    - `index.html` (3.6 KB)
-    - `assets/index-BVzAeVbH.js` (1007 KB)
-    - `assets/index-BGQ3Lw2q.css` (2.3 KB)
-    - Source maps included.
-- **Hosting**: Ready for manual upload to Hostinger `public_html`.
-- **Status**: ✅ Build complete, awaiting Hostinger deployment.
+## 🚀 Current Objective: Trilingual Features & Firebase Migration
+We successfully implemented trilingual (English, Swedish, Finnish) translations for key outputs, created a responsive Proverbs Page and Comparative Report Page, migrated hosting to Firebase, and routed the custom domain `nordicsaunamap.com` directly to Firebase with all DNS conflicts resolved.
 
 ---
 
-## 🛠️ Technical Implementation Details
+## 🛠️ Codebase Audit & Compilation Check (July 16, 2026)
+As of today, the codebase has been audited and all TypeScript errors have been resolved, meaning **`npx tsc --noEmit` compiles cleanly with zero errors**.
 
-### **Newsletter Manager Features**
-1. **Multi-Step Workflow**:
-   - Step 1: Audience Selection (Subscribers, Members, All)
-   - Step 2: Template Selection (Classic Heritage, Nordic Minimal)
-   - Step 3: Content Composition (Subject, Image Upload, Body Text)
-   - Step 4: Preview & Confirmation
-   - Step 5: Results & Reporting
+### **Type-Safety & Compilation Cleanups Implemented:**
+1. **TypeScript Workspace Configuration**:
+   - Modified [tsconfig.json](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/tsconfig.json) to exclude the `scratch/` directory. This keeps temporary/recovered utility scripts from failing type-checks.
+   - Added `"vite/client"` to the compiler's `types` configuration so that `import.meta.env` references (e.g., in [index.tsx](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/index.tsx)) resolve their types correctly.
+2. **Missing Imports & Interface Updates**:
+   - Added the missing `LanguageCode` import in [comparativeReportData.ts](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/comparativeReportData.ts).
+   - Added the optional `created_at` field to the `Profile` interface in [types.ts](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/types.ts) to support member sign-up/creation tracking.
+3. **Admin Panel Property Mapping**:
+   - Fixed an undefined prop warning in [components/AdminPanel.tsx](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/components/AdminPanel.tsx) by properly passing and destructuring `onReject` in `UserDetailView`.
 
-2. **Live Preview System**:
-   - Desktop/Mobile toggle.
-   - Real-time content updates.
-   - Template-specific styling.
+---
 
-3. **Image Management**:
-   - Upload to Supabase Storage (`blog-media` bucket).
-   - Replace/remove functionality.
-   - Fallback images for templates.
+## 📁 System Architecture Audit
 
-4. **Test Dispatch**:
-   - Send to specific email before global broadcast.
-   - Full error reporting from Resend API.
+### **1. Navigation & Routing (App.tsx)**
+- The primary router maps pages including:
+  - `/` (Home page with beautiful custom cards for history/heritage/wellbeing)
+  - `/outputs/comparative-report` -> [ComparativeReportPage.tsx](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/pages/ComparativeReportPage.tsx)
+  - `/outputs/proverbs` -> [ProverbsPage.tsx](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/pages/ProverbsPage.tsx)
+  - `/education` -> Educational resources and lesson plan filter list (supports PDF, presentation, twee, and local videos)
+  - `/blog` -> Public blog posts and stories with multilingual support and social share integration.
 
-### **Database Schema**
-```sql
--- broadcasts table
-id UUID PRIMARY KEY
-subject TEXT NOT NULL
-audience TEXT NOT NULL
-template_id TEXT
-content TEXT
-image_url TEXT
-sent_by UUID REFERENCES profiles(id)
-total_recipients INTEGER
-success_count INTEGER
-failure_count INTEGER
-created_at TIMESTAMPTZ
+### **2. Content & Multilingual Pages**
+- **Comparative Report Page**: Dynamic content updates in the selected language (`en`/`sv`/`fi`) reading data from [comparativeReportData.ts](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/comparativeReportData.ts). Replaced all placeholder images with premium log-cabin visuals.
+- **Sauna Proverbs Page**: Custom layout rendering the selected language proverb in high-visibility quotes, with remaining translations easily toggleable. Integrates a categories filter stack cleanly below the search bar.
 
--- broadcast_recipients table
-id UUID PRIMARY KEY
-broadcast_id UUID REFERENCES broadcasts(id)
-email TEXT NOT NULL
-status TEXT (pending/sent/failed)
-error_message TEXT
-opened_at TIMESTAMPTZ
-created_at TIMESTAMPTZ
+### **3. Admin Controls (components/AdminPanel.tsx)**
+- **User Management**: Admins can edit member roles (Admin, Member, User) and verify account statuses.
+- **Moderation Panel**: Handles public sauna submissions and blog posts.
+- **Lesson Plans Expansion**: Admins can add and edit multilingual resources (supporting Swedish, Finnish, and English titles, subtitles, and document links).
+- **Rich Text Editor**: Integrates `@tiptap` in [RichTextEditor.tsx](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/components/RichTextEditor.tsx) for editing description content in original and target languages.
+
+### **4. Firebase Database & Cloud Functions**
+- **Firestore Security rules** [firestore.rules](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/firestore.rules):
+  - Lock down writes to profiles, blogs, and materials to admins, leaving public saunas readable by anyone.
+  - Users can read/write their own profiles.
+- **Cloud Functions** [functions/index.js](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/functions/index.js):
+  - Newsletter subscriptions, unsubscribe links, and automatic delivery routing are handled here.
+  - Features the callable `translateText` HTTPS cloud function leveraging `@google-cloud/translate` to translate HTML or standard text for blogs.
+
+### **5. Progressive Web App (PWA)**
+- Manifest (`public/manifest.json`) and service worker (`public/sw.js`) are fully integrated into [index.html](file:///c:/Users/nunom/Tropical%20Astral%20team%20Dropbox/Learnmera%20Projects/Nordic%20Sauna%20Project%20-%20LM%20-%20Copy/Website/nordic-sauna-map/index.html).
+- Added an install button and custom `InstallPwaModal` component to encourage users to install the app on supported desktop and mobile devices.
+
+## 🖼️ Vertex AI Image Generation Integration (July 16, 2026)
+
+We successfully integrated programmatic image generation into the Firebase environment using Google's pre-enabled foundation models on Vertex AI, bypassing developer key quota limits and deprecated endpoints.
+
+### **1. Key Architectural Insights**
+- **The Challenge**: Direct Developer Gemini API keys (AI Studio) have a hard `0` quota limit on the free tier for programmatic image generation. Regional Vertex AI `imagen-3.0-fast-generate-001` predict REST endpoints often return `404 Not Found` unless complex GCP Model Garden console agreements are manually clicked.
+- **The Solution**: Use the pre-enabled Gemini 3.1 foundation model family—specifically **`gemini-3.1-flash-image`**—on the Vertex AI platform. These models do not require explicit manual activation in the Google Cloud Console.
+- **The Endpoint**: Call the **`global`** location endpoint `aiplatform.googleapis.com` instead of a regional one:
+  `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/global/publishers/google/models/gemini-3.1-flash-image:generateContent`
+- **Request Format**: Configure the `generation_config` with the `response_modalities` parameter containing `["TEXT", "IMAGE"]`.
+
+---
+
+### **2. Reusable Code Implementation (Cloud Function)**
+
+Below is the complete, production-ready Firebase Cloud Function code used to authenticate and call the global model endpoint to retrieve base64 JPEG image data:
+
+```javascript
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { GoogleAuth } = require("google-auth-library");
+
+exports.generateAIThumbnail = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in to generate images");
+  }
+  
+  const { prompt } = request.data;
+  if (!prompt) {
+    throw new HttpsError("invalid-argument", "Missing prompt");
+  }
+
+  try {
+    // Authenticate using the function's service account credentials
+    const auth = new GoogleAuth({
+      scopes: "https://www.googleapis.com/auth/cloud-platform"
+    });
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    const accessToken = tokenResponse.token;
+
+    // Use current GCP project ID or default fallback
+    const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT || "nordic-saunas";
+    const location = "global"; 
+    const modelId = "gemini-3.1-flash-image"; 
+
+    const url = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:generateContent`;
+
+    console.log(`Generating thumbnail using Vertex AI ${modelId} on project ${projectId}...`);
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generation_config: {
+          response_modalities: ["TEXT", "IMAGE"]
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Vertex AI API failed:", errText);
+      throw new Error(errText || "Vertex AI API error");
+    }
+
+    const data = await response.json();
+    if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+      throw new Error("No candidates returned from Vertex AI");
+    }
+
+    // Find the part containing the image inlineData
+    const imagePart = data.candidates[0].content.parts.find(p => p.inlineData && p.inlineData.data);
+    if (!imagePart) {
+      throw new Error("No image returned in response parts from Vertex AI");
+    }
+
+    const base64Image = imagePart.inlineData.data; // Standard base64 JPEG data
+    return { imageBase64: base64Image };
+  } catch (error) {
+    console.error("Image generation error:", error);
+    throw new HttpsError("internal", error.message || "Image generation failed");
+  }
+});
 ```
 
-### **Security & Compliance**
-- **RLS Policies**: Admin-only access to broadcasts and recipients.
-- **GDPR Compliance**: 
-  - Unsubscribe links in all emails.
-  - Cross-table unsubscription (subscribers + profiles).
-  - Suppression list prevents re-sending to unsubscribed users.
-- **Email Authentication**: JWT-based session validation in Edge Functions.
+---
+
+### **3. Prompt Engineering Tips for High-Quality Visuals**
+To prevent cartoonish or flat vector styles, prefix the prompt with photographic styling cues:
+- **Vector/Cartoon Style**: `Educational illustration, clean modern style, vector graphic...`
+- **Realistic Photographic Style**: `Professional high-quality photograph, realistic details, clean modern aesthetic, no text...`
 
 ---
 
-## 📊 Current System Status
+## 🔮 Suggested Next Actions
 
-### **✅ Working Features**
-- Newsletter composition and dispatch
-- Broadcast history and analytics
-- Test email functionality
-- Image upload and management
-- Unsubscribe flow
-- Multi-language support (EN, SV, FI)
-- Mobile-responsive design
-- Dark mode support
+Here are some potential tasks for the next phase of development:
 
-### **⚠️ Pending Actions**
-1. **Hostinger Deployment**: Upload `dist/` folder to production server.
-2. **Domain Verification**: Ensure `nordicsaunamap.com` is verified in Resend dashboard.
-3. **Testing**: Send test newsletter to verify end-to-end flow on production.
+1. **PWA Offline Mode Caching**:
+   - Fine-tune the service worker caching strategy in `public/sw.js` to ensure the sauna map, proverbs, and report pages load instantly offline.
+2. **Advanced Search & Localization**:
+   - Add multilingual keywords indexing so that searching "bastu" on the Proverbs page returns Sweden/Finland items even if Swedish is not currently the active language.
+3. **Draft and Edit Moderation workflows**:
+   - Improve the blog draft moderation UI inside the Admin Panel to show post-draft revisions cleanly.
 
 ---
 
-## 🔐 Configuration Summary
-
-### **Supabase**
-- **Project ID**: `hgpcpontdxjsbqsjiech`
-- **URL**: `https://hgpcpontdxjsbqsjiech.supabase.co`
-- **Anon Key**: `sb_publishable_2FsR0yjkb0MFJIQGSrmYBw_NoVaFlJN`
-- **Storage Bucket**: `blog-media` (for newsletter images)
-
-### **Environment Variables**
-```env
-VITE_SUPABASE_URL=https://hgpcpontdxjsbqsjiech.supabase.co
-VITE_SUPABASE_ANON_KEY=sb_publishable_2FsR0yjkb0MFJIQGSrmYBw_NoVaFlJN
-VITE_MAPBOX_TOKEN=[configured]
-```
-
-### **Supabase Secrets** (Edge Functions)
-- `RESEND_API_KEY`: Configured for email dispatch
-- `SITE_URL`: `https://nordicsaunamap.com`
-- `SUPABASE_SERVICE_ROLE_KEY`: Admin access key
-
-### **Resend Configuration**
-- **From Address**: `Nordic Sauna Map <newsletter@nordicsaunamap.com>`
-- **Domain**: `nordicsaunamap.com` (verify in Resend dashboard)
-
----
-
-## 📋 Next Steps
-
-### **Immediate (Required for Production)**
-1. ✅ Upload `dist/` folder to Hostinger `public_html`
-2. ✅ Verify domain in Resend dashboard
-3. ✅ Send test newsletter to confirm delivery
-4. ✅ Monitor broadcast history for any errors
-
-### **Future Enhancements**
-- Email open tracking (webhook from Resend)
-- Click tracking for newsletter links
-- A/B testing for subject lines
-- Scheduled newsletter dispatch
-- Subscriber segmentation by country/language
-- Newsletter templates library
-- Analytics dashboard for engagement metrics
-
----
-
-## 🎯 Key Files Modified
-
-### **Frontend**
-- `components/NewsletterManager.tsx` - Main broadcast interface
-- `pages/UnsubscribePage.tsx` - Premium unsubscribe experience
-- `components/Layout.tsx` - Hide newsletter CTA on unsubscribe page
-- `supabaseClient.ts` - Export URL and key for reliability
-
-### **Backend**
-- `supabase/functions/send-broadcast/index.ts` - Newsletter dispatch logic
-- `supabase/functions/notify/index.ts` - General notification system
-- `supabase/migrations/20240205000000_create_broadcast_tracking.sql` - Database schema
-
-### **Build**
-- `dist/` - Production build ready for Hostinger deployment
-
----
-
-## 🔍 Troubleshooting Guide
-
-### **"No API key found" Error**
-- ✅ **Fixed**: Hardcoded constants now exported from `supabaseClient.ts`
-
-### **"Table not found" Error**
-- ✅ **Fixed**: SQL migration executed in Supabase Dashboard
-
-### **Newsletter Not Received**
-- Check if recipient is in `newsletter_subscribers` or `profiles` table
-- Verify domain in Resend dashboard
-- Check Edge Function logs for errors
-- Review broadcast history for delivery status
-
-### **Unsubscribe Page Not Loading**
-- ✅ **Fixed**: New premium design deployed
-- Ensure route is configured in `App.tsx`
-- Check that `Layout.tsx` hides Newsletter CTA on this route
-
----
-
-**Last Updated**: February 6, 2026, 14:36 UTC  
-**Status**: ✅ Ready for Production Deployment  
-**Next Action**: Upload `dist/` to Hostinger
+**Last Updated**: July 16, 2026
+**Status**: ✅ Image generation, partners, and resources updates deployed successfully to live.
+**Next Action**: Select next features/tickets for development.

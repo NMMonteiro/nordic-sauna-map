@@ -23,4 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-.vercel
+# Temporary diagnostic scripts and build artifacts
+scratch/
+build/
+build.zip
+

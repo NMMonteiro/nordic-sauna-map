@@ -78,9 +78,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
             all: 'All',
             approved: 'Approved',
             pending: 'Pending',
-            rejected: 'Rejected',
+            submissions: 'Submissions',
             education: 'Resources',
-            blog: 'Stories',
+            blog: 'Blog Posts',
             newsletter: 'Newsletter'
         },
         sv: {
@@ -111,7 +111,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
             pending: 'Väntande',
             rejected: 'Nekade',
             education: 'Resurser',
-            blog: 'Stories',
+            blog: 'Blog Posts',
             newsletter: 'Nyhetsbrev'
         },
         fi: {
@@ -600,7 +600,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, lang, onUpdate,
                                 <NewsletterManager t={t} lang={lang} />
                             )}
                             {activeTab === 'user_detail' && selectedUser && (
-                                <UserDetailView user={selectedUser} saunas={userSaunas} lang={lang} t={t} onBack={() => setActiveTab('users')} onApprove={handleSaunaStatus} onEdit={setEditingSauna} onDelete={deleteSauna} />
+                                <UserDetailView user={selectedUser} saunas={userSaunas} lang={lang} t={t} onBack={() => setActiveTab('users')} onApprove={handleSaunaStatus} onReject={handleSaunaStatus} onEdit={setEditingSauna} onDelete={deleteSauna} />
                             )}
                         </div>
                     )}
@@ -664,6 +664,7 @@ const UserListView = ({ profiles, onUpdateUser, onDeleteUser, onSelectUser, onEd
                     <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">{t.details}</th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">{t.status}</th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">{t.role}</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Joined</th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 text-right">Actions</th>
                 </tr>
             </thead>
@@ -687,6 +688,9 @@ const UserListView = ({ profiles, onUpdateUser, onDeleteUser, onSelectUser, onEd
                             </td>
                             <td className="px-6 py-4">
                                 <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${roleCfg.bg} ${roleCfg.color}`}>{roleCfg.label}</span>
+                            </td>
+                            <td className="px-6 py-4 text-[11px] font-medium text-slate-500">
+                                {p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString() : (p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Unknown')}
                             </td>
                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                                 <div className="flex items-center justify-end gap-1">
@@ -933,7 +937,7 @@ const EditMemberModal = ({ member, currentUser, onClose, onSave, loading, error 
                             </div>
                             <div className="mt-2 text-[9px] text-slate-400 font-bold space-y-0.5">
                                 <p><span className="text-purple-600">Admin</span> — full platform access &amp; moderation</p>
-                                <p><span className="text-blue-600">Member</span> — can contribute saunas and write stories</p>
+                                <p><span className="text-blue-600">Member</span> — can contribute saunas and write posts</p>
                                 <p><span className="text-slate-500">User</span> — read-only access</p>
                             </div>
                         </div>
@@ -1053,7 +1057,7 @@ const EditMemberModal = ({ member, currentUser, onClose, onSave, loading, error 
     );
 };
 
-const UserDetailView = ({ user, saunas, lang, t, onBack, onApprove, onEdit, onDelete }: any) => (
+const UserDetailView = ({ user, saunas, lang, t, onBack, onApprove, onReject, onEdit, onDelete }: any) => (
     <div className="space-y-6">
         <div className="bg-white p-6 lg:p-10 rounded-3xl border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
@@ -1231,7 +1235,7 @@ const ArchiveListView = ({ saunas, lang, t, onEdit, onDelete, onApprove, onRejec
 const BlogModerationView = ({ posts, onApprove, onReject }: any) => (
     <div className="space-y-6">
         {posts.length === 0 ? (
-            <div className="py-20 text-center text-slate-200 font-black uppercase tracking-[0.2em]">No stories waiting review</div>
+            <div className="py-20 text-center text-slate-200 font-black uppercase tracking-[0.2em]">No posts waiting review</div>
         ) : (
             <div className="grid grid-cols-1 gap-6">
                 {posts.map((p: any) => (
@@ -1253,8 +1257,8 @@ const BlogModerationView = ({ posts, onApprove, onReject }: any) => (
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="text-xl font-black text-slate-900 uppercase mb-1">{p.title}</h3>
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                        By {(Array.isArray(p.profiles) ? p.profiles[0] : p.profiles)?.full_name || 'Unknown'} • {new Date(p.created_at).toLocaleDateString()}
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        By {(Array.isArray(p.profiles) ? p.profiles[0] : p.profiles)?.full_name || 'Unknown'} • {p.created_at?.toDate ? p.created_at.toDate().toLocaleDateString() : (p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Unknown')}
                                     </p>
                                 </div>
                                 <div className="flex gap-2">

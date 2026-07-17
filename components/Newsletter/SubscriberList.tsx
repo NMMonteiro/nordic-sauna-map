@@ -112,6 +112,8 @@ export const SubscriberList: React.FC<SubscriberListProps> = ({ t, lang }) => {
             setLastDoc(snapshot.docs[snapshot.docs.length - 1] ?? null);
         } catch (err) {
             console.error("Error fetching subscribers:", err);
+            setSubscribers([]);
+            setTotalCount(0);
         } finally {
             setLoading(false);
         }
@@ -193,7 +195,7 @@ export const SubscriberList: React.FC<SubscriberListProps> = ({ t, lang }) => {
         const rows = subscribers.map(s => [
             s.email,
             s.status,
-            s.created_at?.toDate?.()?.toISOString() || 'N/A',
+            s.created_at?.toDate ? s.created_at.toDate().toISOString() : (s.created_at ? new Date(s.created_at).toISOString() : 'N/A'),
             s.source || 'WEB'
         ]);
         const csv = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(r => r.join(",")).join("\n");
@@ -311,7 +313,7 @@ export const SubscriberList: React.FC<SubscriberListProps> = ({ t, lang }) => {
                                         </td>
                                         <td className="px-8 py-5 whitespace-nowrap">
                                             <span className="text-xs font-bold text-slate-400">
-                                                {sub.created_at?.toDate?.()?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) || 'N/A'}
+                                                {sub.created_at?.toDate ? sub.created_at.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (sub.created_at ? new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A')}
                                             </span>
                                         </td>
                                         <td className="px-8 py-5 whitespace-nowrap">

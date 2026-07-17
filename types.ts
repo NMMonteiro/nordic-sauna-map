@@ -62,6 +62,7 @@ export interface Profile {
   full_name?: string;
   metadata?: any;
   preferences?: any;
+  created_at?: any;
 }
 
 export interface Sauna {
@@ -84,13 +85,17 @@ export interface Sauna {
   views?: number;
 }
 
-export type MaterialType = 'pdf' | 'presentation' | 'video' | 'twee';
+export type MaterialType = 'pdf' | 'presentation' | 'video' | 'twee' | 'lesson_plan' | 'article' | 'worksheet';
 
 export interface LearningMaterial {
   id: string;
   title: string;
   description: string;
   type: MaterialType;
+  language?: LanguageCode;
+  audio_language?: string;
+  subtitles_language?: string; // Legacy
+  subtitles_languages?: string[];
   url?: string;
   file_path?: string;
   thumbnail?: string;
@@ -98,13 +103,19 @@ export interface LearningMaterial {
   created_by: string;
 }
 
-export type PostStatus = 'pending_approval' | 'approved' | 'rejected';
+export type PostStatus = 'draft' | 'pending_approval' | 'approved' | 'rejected';
 
 export interface BlogPost {
   id: string;
   author_id: string;
   title: string;
+  title_en?: string;
+  title_sv?: string;
+  title_fi?: string;
   content: string;
+  content_en?: string;
+  content_sv?: string;
+  content_fi?: string;
   media_urls: string[];
   category?: string;
   views?: number;

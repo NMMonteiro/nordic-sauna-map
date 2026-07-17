@@ -103,7 +103,7 @@ export const UserPanel: React.FC<UserPanelProps> = ({
             member: 'Heritage Member',
             contributor: 'Active Contributor',
             education: 'Educational Assets',
-            blog: 'Cultural Stories'
+            blog: 'Blog Posts'
         },
         sv: {
             overview: 'Översikt',

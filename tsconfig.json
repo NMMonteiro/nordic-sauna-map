@@ -11,7 +11,8 @@
     ],
     "skipLibCheck": true,
     "types": [
-      "node"
+      "node",
+      "vite/client"
     ],
     "moduleResolution": "bundler",
     "isolatedModules": true,
@@ -30,6 +31,7 @@
     "node_modules",
     "dist",
     "supabase",
-    "components/MapPin.tsx"
+    "components/MapPin.tsx",
+    "scratch"
   ]
 }

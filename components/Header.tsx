@@ -15,8 +15,10 @@ import {
     Menu,
     X,
     LayoutDashboard,
-    PlusCircle
+    PlusCircle,
+    Download
 } from 'lucide-react';
+import { InstallPwaModal } from './InstallPwaModal';
 
 interface HeaderProps {
     lang: LanguageCode;
@@ -44,6 +46,7 @@ export const Header = ({
     const location = useLocation();
     const [scrolled, setScrolled] = useState(false);
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+    const [showInstallModal, setShowInstallModal] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -61,11 +64,15 @@ export const Header = ({
             blog: "Blog",
             ourProject: "Our Project",
             partners: "Partners",
-            lessonPlans: "Lesson Plans",
+            lessonPlans: "Resources",
             dashboard: "Dashboard",
             settings: "Settings",
             signOut: "Sign Out",
-            admin: "Admin Console"
+            admin: "Admin Console",
+            installApp: "Install App",
+            outputs: "Outputs",
+            comparativeReport: "Comparative Report",
+            saunaProverbs: "Sauna Proverbs"
         },
         sv: {
             saunas: "Bastukartan",
@@ -76,11 +83,15 @@ export const Header = ({
             blog: "Blogg",
             ourProject: "Vårt projekt",
             partners: "Partnerinformation",
-            lessonPlans: "Lektionsplaner",
+            lessonPlans: "Resurser",
             dashboard: "Dashboard",
             settings: "Inställningar",
             signOut: "Logga ut",
-            admin: "Adminpanel"
+            admin: "Adminpanel",
+            installApp: "Installera App",
+            outputs: "Resultat",
+            comparativeReport: "Jämförande rapport",
+            saunaProverbs: "Bastuordspråk"
         },
         fi: {
             saunas: "Saunakartta",
@@ -91,11 +102,15 @@ export const Header = ({
             blog: "Blogi",
             ourProject: "Projektimme",
             partners: "Partneritiedot",
-            lessonPlans: "Oppituntisuunnitelmat",
+            lessonPlans: "Resurssit",
             dashboard: "Hallintapaneeli",
             settings: "Asetukset",
             signOut: "Kirjaudu ulos",
-            admin: "Admin-paneeli"
+            admin: "Admin-paneeli",
+            installApp: "Asenna Sovellus",
+            outputs: "Tuotokset",
+            comparativeReport: "Vertaileva raportti",
+            saunaProverbs: "Saunan sananlaskut"
         }
     };
 
@@ -183,6 +198,22 @@ export const Header = ({
 
                     <NavLink to="/education" className={isHeaderActive ? "" : "text-white/80"}>{t.lessonPlans}</NavLink>
 
+                    {/* Outputs Dropdown */}
+                    <div className="relative group py-2">
+                        <button className={cn(
+                            "flex items-center gap-1 text-sm font-semibold transition-all duration-300 group-hover:text-primary",
+                            isHeaderActive ? "text-slate-600 dark:text-slate-300" : "text-white/80"
+                        )}>
+                            {t.outputs} <ChevronDown className="size-4 group-hover:rotate-180 transition-transform duration-300" />
+                        </button>
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 opacity-0 translate-y-4 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 ease-out">
+                            <div className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none rounded-2xl p-2 min-w-[220px] overflow-hidden">
+                                <Link to="/outputs/comparative-report" className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors text-sm font-medium text-slate-700 dark:text-slate-200 block">{t.comparativeReport}</Link>
+                                <Link to="/outputs/proverbs" className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors text-sm font-medium text-slate-700 dark:text-slate-200 block">{t.saunaProverbs}</Link>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* About Dropdown */}
                     <div className="relative group py-2">
                         <button className={cn(
@@ -202,6 +233,20 @@ export const Header = ({
 
                 {/* Right: Actions */}
                 <div className="flex items-center justify-end gap-4">
+                    {/* Install App Button */}
+                    <button
+                        onClick={() => setShowInstallModal(true)}
+                        className={cn(
+                            "hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 border border-transparent",
+                            isHeaderActive 
+                                ? "bg-primary/10 text-primary hover:bg-primary/20" 
+                                : "bg-white/10 text-white hover:bg-white/20"
+                        )}
+                    >
+                        <Download className="size-3.5" />
+                        <span>{t.installApp}</span>
+                    </button>
+
                     {/* Language Switcher (Desktop only) */}
                     <div className="hidden lg:flex items-center bg-slate-100/50 dark:bg-slate-800/50 rounded-full border border-slate-200/20 dark:border-slate-700/50 p-1">
                         {['sv', 'fi', 'en'].map(l => (
@@ -371,7 +416,9 @@ export const Header = ({
                         <div className="flex flex-col p-8 space-y-8 max-h-[80vh] overflow-y-auto">
                             <nav className="flex flex-col space-y-4">
                                 <NavLink to="/" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.saunas}</NavLink>
-                                <NavLink to="/education" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.education}</NavLink>
+                                <NavLink to="/education" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.lessonPlans}</NavLink>
+                                <NavLink to="/outputs/comparative-report" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.comparativeReport}</NavLink>
+                                <NavLink to="/outputs/proverbs" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.saunaProverbs}</NavLink>
                                 <NavLink to="/news" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.news}</NavLink>
                                 <NavLink to="/blog" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.blog}</NavLink>
                                 <NavLink to="/about" className="text-3xl font-black uppercase text-slate-900 dark:text-white">{t.about}</NavLink>
@@ -432,6 +479,12 @@ export const Header = ({
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <InstallPwaModal 
+                isOpen={showInstallModal} 
+                onClose={() => setShowInstallModal(false)} 
+                deferredPrompt={(window as any).deferredPrompt} 
+            />
         </header>
     );
 };

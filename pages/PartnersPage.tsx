@@ -14,19 +14,21 @@ export const PartnersPage = ({ lang }: PartnersPageProps) => {
             subtitle: "Project Consortium",
             learnmera: {
                 name: "Learnmera / Finland",
-                description: "Learnmera is a private language education and translation provider located in the greater Helsinki area. They offer a variety of services, including language instruction, translation, marketing, and educational resource development.",
+                description: "Learnmera is a private language education and translation provider located in the greater Helsinki area. They offer a variety of services, including language instruction, translation, marketing, and educational resource development. Learnmera is dedicated to fostering communication and understanding in an increasingly interconnected world by facilitating interaction between people in a global, multi-cultural society.",
                 services: [
-                    { title: "Language Instruction", content: "Expert business language lessons in major Nordic and European languages." },
-                    { title: "Translation & Marketing", content: "Effective cross-cultural communication for global organizations." },
-                    { title: "Educational Resources", content: "Vast experience in creating trilingual cultural and pedagogical materials." },
-                    { title: "Digital Solutions", content: "Development of web portals, benchmarking tools, and mobile applications." }
+                    { title: "Language Instruction", content: "Provides business language lessons in major Nordic and European languages, as well as beginner's courses in English, Finnish, and Swedish." },
+                    { title: "Translation & Marketing", content: "Leverages its language expertise to help businesses and organizations communicate effectively with diverse audiences." },
+                    { title: "Educational Resources", content: "They have considerable experience creating educational and cultural resources, including materials for language learning and other courses." },
+                    { title: "Digital Solutions", content: "Develops websites, web portals, benchmarking tools, games and mobile applications to support language learning and facilitate communication across cultures." },
+                    { title: "IT Services", content: "Provides social media management services, for corporate clients and institutions seeking to enhance their customer interfaces and social media presence." },
+                    { title: "Support for Migrants", content: "Assists migrants with various needs outside the classroom, including work, housing, and cultural issues." }
                 ],
-                trackRecord: "Personal have worked on over 60 EU projects, managing platforms with over 35,000 global educators."
+                trackRecord: "They have a strong track record of involvement in EU and domestic projects, with staff having worked on over 60 such projects. They also manage an online platform, The Language Menu, which boasts a member base of around 35,000 teachers worldwide."
             },
             bcreative: {
                 name: "B-Creative / Sweden",
-                intro: "B-Creative develops advanced courses, events, and workshops focusing on language learning, virtual travel, and cultural concepts with a vast European network.",
-                experience: "Decades of involvement in EU-projects focused on lifelong learning, social exclusion, and vocational training for disadvantaged groups."
+                intro: "B-Creative is an association that are developing courses, event, workshops in different topics such as language learning, virtual travelling, education concepts and cultural concepts. B-Creative have a large network in Sweden and in Europe with NGOs, education organisations and associations.\n\nThe staff in B- Creative have experience of European projects, development of education material, marketing, networking and focus on the individual are central values for us.\nThe staff are working with development of education material for different target groups such as culture education, entrepreneur skills, ICT education, social inclusion.",
+                experience: "B- Creative staff have been involved in EU-projects that focus on lifelong learning, social exclusion, gender mainstreaming, disability, liberal education, entrepreneur skills, aspects within vocational training for adults and disadvantaged group. Also, good cooperation with Migrant associations and Senior associations and experience of development of activities and material for migrants and the elderly generation."
             }
         },
         fi: {
@@ -34,19 +36,21 @@ export const PartnersPage = ({ lang }: PartnersPageProps) => {
             subtitle: "Projektin Konsortio",
             learnmera: {
                 name: "Learnmera / Suomi",
-                description: "Learnmera on yksityinen kielikoulutuksen ja käännöspalveluiden tarjoaja Helsingistä, erikoistuen opetusresurssien kehittämiseen.",
+                description: "Learnmera on yksityinen kielikoulutuksen ja käännöspalveluiden tarjoaja Helsingin seudulla. He tarjoavat monenlaisia palveluita, kuten kielikoulutusta, kääntämistä, markkinointia ja opetusresurssien kehittämistä. Learnmera on omistautunut edistämään viestintää ja ymmärrystä yhä enemmän toisiinsa kytkeytyvässä maailmassa helpottamalla ihmisten välistä vuorovaikutusta globaalissa, monikulttuurisessa yhteiskunnassa.",
                 services: [
-                    { title: "Kieltenopetus", content: "Liike-elämän kieltenopetusta tärkeimmissä pohjoismaisissa kielissä." },
-                    { title: "Käännöspalvelut", content: "Tehokasta viestintää yrityksille ja organisaatioille." },
-                    { title: "Opetusresurssit", content: "Laaja kokemus kolmikielisten materiaalien luomisesta." },
-                    { title: "Digitaaliset Ratkaisut", content: "Verkkosivujen, pelien ja mobiilisovellusten kehittäminen." }
+                    { title: "Kieltenopetus", content: "Tarjoaa liike-elämän kielitunteja tärkeimmissä pohjoismaisissa ja eurooppalaisissa kielissä sekä alkeiskursseja englanniksi, suomeksi ja ruotsiksi." },
+                    { title: "Käännöspalvelut", content: "Hyödyntää kieliasiantuntemustaan auttaakseen yrityksiä ja organisaatioita viestimään tehokkaasti moninaisten yleisöjen kanssa." },
+                    { title: "Opetusresurssit", content: "Heillä on huomattava kokemus opetus- ja kulttuuriresurssien luomisesta, mukaan lukien materiaalit kieltenopiskeluun ja muihin kursseihin." },
+                    { title: "Digitaaliset Ratkaisut", content: "Kehittää verkkosivustoja, verkkoportaaleja, benchmarking-työkaluja, pelejä ja mobiilisovelluksia kieltenopiskelun tueksi ja kulttuurienvälisen viestinnän helpottamiseksi." },
+                    { title: "IT-palvelut", content: "Tarjoaa sosiaalisen median hallintavelvollisuuksia yritysasiakkaille ja instituutiolle, jotka haluavat parantaa asiakasrajapintojaan ja sosiaalisen median näkyvyyttään." },
+                    { title: "Tuki maahanmuuttajille", content: "Auttaa maahanmuuttajia erilaisissa tarpeissa luokkahuoneen ulkopuolella, mukaan lukien työ, asuminen ja kulttuuriset asiat." }
                 ],
-                trackRecord: "Henkilöstö on työskennellyt yli 60 kansainvälisessä hankkeessa ja hallinnoi 35 000 opettajan verkostoa."
+                trackRecord: "Heillä on vahva kokemus osallistumisesta EU- ja kotimaisiin hankkeisiin; henkilöstö on työskennellyt yli 60 tällaisessa hankkeessa. He myös hallinnoivat The Language Menu -verkkoalustaa, jolla on noin 35 000 opettajajäsentä maailmanlaajuisesti."
             },
             bcreative: {
                 name: "B-Creative / Ruotsi",
-                intro: "B-Creative kehittää kursseja ja työpajoja kielten oppimisesta ja kulttuurikonsepteista laajassa eurooppalaisessa verkostossa.",
-                experience: "Pitkäaikainen kokemus EU-hankkeista, jotka keskittyvät elinikäiseen oppimiseen ja sosiaaliseen osallisuuteen."
+                intro: "B-Creative on yhdistys, joka kehittää kursseja, tapahtumia ja työpajoja eri aiheista, kuten kieltenopiskelusta, virtuaalimatkailusta sekä koulutus- ja kulttuurikonsepteista. B-Creativella on laaja verkosto Ruotsissa ja Euroopassa kansalaisjärjestöjen, koulutusorganisaatioiden ja yhdistysten kanssa.\n\nB-Creativen henkilökunnalla on kokemusta eurooppalaisista hankkeista, opetusmateriaalin kehittämisestä, markkinoinnista ja verkostoitumisesta, ja yksilön kohtaaminen on meille keskeinen arvo.\nHenkilökunta työskentelee opetusmateriaalien kehittämiseksi eri kohderyhmille, kuten kulttuurikasvatukseen, yrittäjyystaitoihin, tieto- ja viestintätekniikan opetukseen ja sosiaaliseen osallisuuteen.",
+                experience: "B-Creativen henkilökunta on ollut mukana EU-hankkeissa, jotka keskittyvät elinikäiseen oppimiseen, sosiaaliseen syrjäytymiseen, sukupuolten tasa-arvon valtavirtaistamiseen, vammaisuuteen, vapaaseen sivistystyöhön, yrittäjyystaitoihin sekä aikuisten ja heikoimmassa asemassa olevien ryhmien ammatillisen koulutuksen osa-alueisiin. Lisäksi he tekevät hyvää yhteistyötä maahanmuuttajayhdistysten ja senioriyhdistysten kanssa ja heillä on kokemusta toiminnan ja materiaalien kehittämisestä maahanmuuttajille ja ikääntyvälle sukupolvelle."
             }
         },
         sv: {
@@ -54,19 +58,21 @@ export const PartnersPage = ({ lang }: PartnersPageProps) => {
             subtitle: "Projektkonsortium",
             learnmera: {
                 name: "Learnmera / Finland",
-                description: "Learnmera är en privat språkutbildnings- och översättningsleverantör som erbjuder språkundervisning och utveckling av utbildningsresurser.",
+                description: "Learnmera är en privat språkutbildnings- och översättningsleverantör belägen i Helsingforsregionen. De erbjuder en mängd olika tjänster, inklusive språkundervisning, översättning, marknadsföring och utveckling av utbildningsresurser. Learnmera är dedikerade till att främja kommunikation och förståelse i en alltmer sammanlänkad värld genom att underlätta interaktion mellan människor i ett globalt, mångkulturellt samhälle.",
                 services: [
-                    { title: "Språkundervisning", content: "Språklektioner för företag i de viktigaste nordiska språken." },
-                    { title: "Översättningstjänster", content: "Effektiv kommunikation för internationella organisationer." },
-                    { title: "Utbildningsresurser", content: "Stor erfarenhet av att skapa trespråkigt pedagogiskt material." },
-                    { title: "Digitala Lösningar", content: "Utveckling av webbportaler, benchmarkingverktyg och mobilappar." }
+                    { title: "Språkundervisning", content: "Erbjuder språklektioner för affärslivet i de viktigaste nordiska och europeiska språken, samt nybörjarkurser i engelska, finska och svenska." },
+                    { title: "Översättningstjänster", content: "Använder sin språkexpertis för att hjälpa företag och organisationer att kommunicera effektivt med olika målgrupper." },
+                    { title: "Utbildningsresurser", content: "De har stor erfarenhet av att skapa utbildnings- och kulturresurser, inklusive material för språkinlärning och andra kurser." },
+                    { title: "Digitala Lösningar", content: "Utvecklar webbplatser, webbportaler, benchmarkingverktyg, spel och mobilapplikationer för att stödja språkinlärning och underlätta kommunikation mellan kulturer." },
+                    { title: "IT-tjänster", content: "Erbjuder tjänster för hantering av sociala medier för företagskunder och institutioner som vill förbättra sina kundgränssnitt och närvaro i sociala medier." },
+                    { title: "Stöd för migranter", content: "Hjälper migranter med olika behov utanför klassrummet, inklusive arbete, bostad och kulturella frågor." }
                 ],
-                trackRecord: "Personal som arbetat med över 60 EU-projekt och förvaltar plattformar med 35 000 lärare."
+                trackRecord: "De har en stark meritlista av engagemang i EU-projekt och nationella projekt, där personalen har arbetat med över 60 sådana projekt. De förvaltar också en onlineplattform, The Language Menu, som har en medlemsbas på cirka 35 000 lärare över hela världen."
             },
             bcreative: {
                 name: "B-Creative / Sverige",
-                intro: "B-Creative utvecklar kurser och workshops inom språkinlärning och kulturella koncept med ett stort nätverk i Europa.",
-                experience: "Involverad i EU-projekt med fokus på livslångt lärande, social utestängning och yrkesutbildning för vuxna."
+                intro: "B-Creative är en förening som utvecklar kurser, evenemang och workshops inom olika ämnen som språkinlärning, virtuellt resande, utbildningskoncept och kulturella koncept. B-Creative har ett stort nätverk i Sverige och i Europa med frivilligorganisationer, utbildningsorganisationer och föreningar.\n\nPersonalen i B-Creative har erfarenhet av europeiska projekt, utveckling av utbildningsmaterial, marknadsföring, nätverksbyggande, och fokus på individen är centrala värden för oss.\nPersonalen arbetar med utveckling av utbildningsmaterial för olika målgrupper såsom kulturutbildning, entreprenörskompetens, IKT-utbildning och social inkludering.",
+                experience: "Personalen i B-Creative har varit involverade i EU-projekt som fokuserar på livslångt lärande, social utestängning, jämställdhetsintegrering, funktionshinder, folkbildning, entreprenörskompetens, aspekter inom yrkesutbildning för vuxna och missgynnade grupper. De har också ett gott samarbete med migrantföreningar och seniorföreningar samt erfarenhet av att utveckla aktiviteter och material för migranter och den äldre generationen."
             }
         }
     }[lang] || {
@@ -215,7 +221,7 @@ export const PartnersPage = ({ lang }: PartnersPageProps) => {
                             <div className="p-16 bg-blue-50/50 dark:bg-slate-900/50 rounded-[4rem] border border-blue-100 dark:border-slate-800 shadow-2xl shadow-blue-200/20 dark:shadow-none relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
                                 <div className="relative z-10 max-w-2xl">
-                                    <p className="text-2xl md:text-4xl font-light text-slate-800 dark:text-slate-100 leading-[1.3] tracking-tight">
+                                    <p className="text-lg md:text-xl font-light text-slate-700 dark:text-slate-200 leading-relaxed">
                                         {t.bcreative.experience}
                                     </p>
                                 </div>

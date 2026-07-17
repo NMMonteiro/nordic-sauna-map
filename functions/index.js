@@ -1,4 +1,4 @@
-const { onRequest } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const { defineSecret } = require("firebase-functions/params");
@@ -735,4 +735,99 @@ Pohjoismaisen Saunakartan Tiimi`
     }
   }
 );
+
+const { v2: { Translate } } = require('@google-cloud/translate');
+const translate = new Translate();
+
+exports.translateText = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in to translate text");
+  }
+  const { text, targetLang, isHtml } = request.data;
+  if (!text || !targetLang) {
+    throw new HttpsError("invalid-argument", "Missing text or targetLang");
+  }
+
+  try {
+    const options = isHtml ? { to: targetLang, format: 'html' } : { to: targetLang };
+    const [translation] = await translate.translate(text, options);
+    return { translatedText: translation };
+  } catch (error) {
+    console.error("Translation error:", error);
+    throw new HttpsError("internal", error.message || "Translation failed");
+  }
+});
+
+exports.generateAIThumbnail = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in to generate images");
+  }
+  const { prompt } = request.data;
+  if (!prompt) {
+    throw new HttpsError("invalid-argument", "Missing prompt");
+  }
+
+  try {
+    const { GoogleAuth } = require('google-auth-library');
+    const auth = new GoogleAuth({
+      scopes: 'https://www.googleapis.com/auth/cloud-platform'
+    });
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    const accessToken = tokenResponse.token;
+
+    const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT || 'nordic-saunas';
+    const location = 'global'; 
+    const modelId = 'gemini-3.1-flash-image'; 
+
+    const url = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:generateContent`;
+
+    console.log(`Cloud Function generating thumbnail using Vertex AI ${modelId} on project ${projectId}...`);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generation_config: {
+          response_modalities: ["TEXT", "IMAGE"]
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Vertex AI API failed in Cloud Function:', errText);
+      throw new Error(errText || 'Vertex AI API error');
+    }
+
+    const data = await response.json();
+    if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+      throw new Error('No candidates returned from Vertex AI');
+    }
+
+    // Find the part containing the image inlineData
+    const imagePart = data.candidates[0].content.parts.find(p => p.inlineData && p.inlineData.data);
+    if (!imagePart) {
+      throw new Error('No image returned in response parts from Vertex AI');
+    }
+
+    const base64Image = imagePart.inlineData.data;
+    return { imageBase64: base64Image };
+  } catch (error) {
+    console.error("Image generation error in Cloud Function:", error);
+    throw new HttpsError("internal", error.message || "Image generation failed");
+  }
+});
 

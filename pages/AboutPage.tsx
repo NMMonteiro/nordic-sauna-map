@@ -15,7 +15,7 @@ export const AboutPage = ({ lang }: AboutPageProps) => {
             resultsTitle: "Core Deliverables",
             results: [
                 "An interactive sauna map with search and filter functions where users can discover saunas in Sweden and Finland, read short texts, view photos, listen to audio clips and read quotes from sauna owners and winter bathers.",
-                "Trilingual lesson plans in PDF and web-based formats, freely available to teachers.",
+                "Trilingual resources in PDF and web-based formats, freely available to teachers.",
                 "A comparative report in PDF and interactive versions with image and audio examples."
             ]
         },
@@ -26,7 +26,7 @@ export const AboutPage = ({ lang }: AboutPageProps) => {
             resultsTitle: "Projektin Tulokset",
             results: [
                 "Interaktiivinen saunakartta, jossa on haku- ja suodatustoiminnot ja jonka avulla käyttäjät voivat etsiä saunoja Ruotsista ja Suomesta, lukea lyhyitä tekstejä, katsella valokuvia, kuunnella äänitteitä ja lukea saunanomistajien ja talvikylpijöiden kommentteja.",
-                "Kolmikieliset oppituntisuunnitelmat PDF- ja verkkomuodossa, vapaasti opettajien käytettävissä.",
+                "Kolmikieliset resurssit PDF- ja verkkomuodossa, vapaasti opettajien käytettävissä.",
                 "Vertailuraportti PDF- ja interaktiivisessa muodossa, jossa on kuva- ja ääniesimerkkejä."
             ]
         },
@@ -37,7 +37,7 @@ export const AboutPage = ({ lang }: AboutPageProps) => {
             resultsTitle: "Projektets Resultat",
             results: [
                 "Interaktiv bastukarta med sök- och filtreringsfunktioner där användare kan upptäcka bastur i Sverige och Finland, läsa korta texter, se foton, lyssna på ljudklipp och ta del av citat från bastuägare och vinterbadare.",
-                "Trespråkiga lektionsplaner i PDF- och webbaserat format, fritt tillgängliga för lärare.",
+                "Trespråkiga resurser i PDF- och webbaserat format, fritt tillgängliga för lärare.",
                 "En jämförande rapporten som PDF och som interaktiv version med bild- och ljudexempel."
             ]
         }

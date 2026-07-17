@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
     const [materials, setMaterials] = useState<LearningMaterial[]>([]);
     const [filter, setFilter] = useState<MaterialType | 'all'>('all');
+    const [languageFilter, setLanguageFilter] = useState<LanguageCode | 'all'>('all');
     const [loading, setLoading] = useState(true);
     const [selectedMaterial, setSelectedMaterial] = useState<LearningMaterial | null>(null);
 
@@ -31,9 +32,11 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
         }
     };
 
-    const filteredMaterials = filter === 'all'
-        ? materials
-        : materials.filter(m => m.type === filter);
+    const filteredMaterials = materials.filter(m => {
+        const typeMatch = filter === 'all' || m.type === filter;
+        const langMatch = languageFilter === 'all' || m.language === languageFilter || (!m.language && languageFilter === 'en');
+        return typeMatch && langMatch;
+    });
 
     const getIcon = (type: MaterialType) => {
         switch (type) {
@@ -41,7 +44,50 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
             case 'presentation': return 'present_to_all';
             case 'video': return 'play_circle';
             case 'twee': return 'interactive_space';
-            default: return 'help';
+            case 'lesson_plan': return 'menu_book';
+            case 'article': return 'article';
+            case 'worksheet': return 'edit_note';
+            default: return 'description';
+        }
+    };
+
+    const getCategoryLabel = (type: string) => {
+        if (lang === 'fi') {
+            switch (type) {
+                case 'all': return 'Kaikki';
+                case 'pdf': return 'PDF-tiedostot';
+                case 'presentation': return 'Esitykset';
+                case 'twee': return 'Interaktiiviset tehtävät';
+                case 'video': return 'Videot';
+                case 'lesson_plan': return 'Resurssit';
+                case 'article': return 'Artikkelit';
+                case 'worksheet': return 'Tehtävämonisteet';
+                default: return type;
+            }
+        } else if (lang === 'sv') {
+            switch (type) {
+                case 'all': return 'Alla';
+                case 'pdf': return 'PDF-filer';
+                case 'presentation': return 'Presentationer';
+                case 'twee': return 'Interaktiva övningar';
+                case 'video': return 'Videor';
+                case 'lesson_plan': return 'Resurser';
+                case 'article': return 'Artiklar';
+                case 'worksheet': return 'Arbetsblad';
+                default: return type;
+            }
+        } else {
+            switch (type) {
+                case 'all': return 'All';
+                case 'pdf': return 'PDFs';
+                case 'presentation': return 'Presentations';
+                case 'twee': return 'Interactive exercises';
+                case 'video': return 'Videos';
+                case 'lesson_plan': return 'Resources';
+                case 'article': return 'Articles';
+                case 'worksheet': return 'Worksheets';
+                default: return type;
+            }
         }
     };
 
@@ -70,7 +116,7 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
     };
 
     return (
-        <div className="bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 min-h-screen pt-40 pb-24 relative overflow-hidden">
+        <div className="bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 min-h-screen pt-32 pb-16 relative overflow-hidden">
             {/* Pro Max Background Elements */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden select-none opacity-40">
                 <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-blue-100/50 rounded-full" />
@@ -84,27 +130,29 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                         animate={{ opacity: 1, y: 0 }}
                         className="inline-block px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6"
                     >
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Resource Hub</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{lang === 'sv' ? 'Resurser' : lang === 'fi' ? 'Materiaalit' : 'Resource Hub'}</span>
                     </motion.div>
 
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white mb-8 uppercase tracking-tighter"
+                        className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 uppercase tracking-tighter"
                     >
-                        {lang === 'sv' ? 'Pedagogiskt Arkiv' : lang === 'fi' ? 'Pedagoginen arkisto' : 'Pedagogical Archive'}
+                        {lang === 'sv' ? 'Resursarkiv' : lang === 'fi' ? 'Resurssiarkisto' : 'Resource Archive'}
                     </motion.h1>
 
                     <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.2 }}
-                        className="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto font-light leading-relaxed"
+                        className="text-lg md:text-xl text-slate-500 max-w-3xl mx-auto font-light leading-relaxed"
                     >
                         {lang === 'sv'
-                            ? 'Upptäck resurser designade för att föra det nordiska arvet in i klassrummet.'
-                            : 'Discover premium resources designed to bring Nordic heritage into the classroom.'}
+                            ? 'Utforska en växande samling av artiklar, videor, lektionsmaterial, presentationer och interaktiva resurser om nordisk bastukultur. Arkivet är utformat för utbildare, inlärare och alla som är intresserade av att upptäcka mer om bastutraditioner, historia, välbefinnande och vardagsliv.'
+                            : lang === 'fi'
+                                ? 'Tutustu kasvavaan kokoelmaan artikkeleita, videoita, oppimateriaaleja, esityksiä ja interaktiivisia resursseja pohjoismaisesta saunakulttuurista. Arkisto on suunniteltu kouluttajille, oppijoille ja kaikille saunaperinteistä, historiasta, hyvinvoinnista ja arjesta kiinnostuneille.'
+                                : 'Explore a growing collection of articles, videos, lesson materials, presentations and interactive resources about Nordic sauna culture. The archive is designed for educators, learners and anyone interested in discovering more about sauna traditions, history, wellbeing and everyday life.'}
                     </motion.p>
                 </header>
 
@@ -113,20 +161,43 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="flex flex-wrap justify-center gap-3 mb-16"
+                    className="flex flex-wrap justify-center gap-3 mb-6"
                 >
-                    {['all', 'pdf', 'presentation', 'video', 'twee'].map((t) => (
+                    {['all', 'pdf', 'presentation', 'video', 'twee', 'lesson_plan', 'article', 'worksheet'].map((t) => (
                         <button
                             key={t}
                             onClick={() => setFilter(t as any)}
                             className={cn(
-                                "px-8 py-3.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 border shadow-sm active:scale-95",
+                                "px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300 border shadow-sm active:scale-95",
                                 filter === t
                                     ? "bg-slate-900 dark:bg-primary border-slate-900 dark:border-primary text-white shadow-xl shadow-slate-900/20"
                                     : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary/40 hover:text-primary dark:hover:text-white"
                             )}
                         >
-                            {t === 'all' ? (lang === 'sv' ? 'Alla' : lang === 'fi' ? 'Kaikki' : 'All') : (t === 'twee' ? 'interactive exercises' : t)}
+                            {getCategoryLabel(t)}
+                        </button>
+                    ))}
+                </motion.div>
+
+                {/* Language Filters */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="flex flex-wrap justify-center gap-2 mb-16"
+                >
+                    {['all', 'en', 'fi', 'sv'].map((l) => (
+                        <button
+                            key={l}
+                            onClick={() => setLanguageFilter(l as any)}
+                            className={cn(
+                                "px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-300 border shadow-sm active:scale-95",
+                                languageFilter === l
+                                    ? "bg-slate-900 dark:bg-primary border-slate-900 dark:border-primary text-white shadow-xl shadow-slate-900/20"
+                                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary/40 hover:text-primary dark:hover:text-white"
+                            )}
+                        >
+                            {l === 'all' ? (lang === 'sv' ? 'Alla Språk' : lang === 'fi' ? 'Kaikki Kielet' : 'All Languages') : (l === 'en' ? 'English' : l === 'fi' ? 'Suomi' : 'Svenska')}
                         </button>
                     ))}
                 </motion.div>
@@ -141,6 +212,7 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                     </div>
                 ) : (
                     <motion.div
+                        key={`${filter}-${languageFilter}`}
                         initial="hidden"
                         animate="visible"
                         variants={{
@@ -150,7 +222,7 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                                 transition: { staggerChildren: 0.1 }
                             }
                         }}
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                     >
                         {filteredMaterials.map((material) => (
                             <motion.div
@@ -168,8 +240,11 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                                             pdf: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=800',
                                             presentation: 'https://images.unsplash.com/photo-1517245385169-d2089c6d6d4a?auto=format&fit=crop&q=80&w=800',
                                             video: 'https://images.unsplash.com/photo-1492724441997-5dc865305da7?auto=format&fit=crop&q=80&w=800',
-                                            twee: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800'
-                                        }[material.type] || 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=800'}
+                                            twee: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800',
+                                            lesson_plan: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=800',
+                                            article: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800',
+                                            worksheet: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=800'
+                                        }[material.type] || 'https://images.unsplash.com/photo-1531234799389-dcb7651eb0a2?auto=format&fit=crop&q=80&w=800'}
                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                         alt={material.title}
                                     />
@@ -180,17 +255,44 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                                     </div>
                                     <div className="absolute top-6 right-6 bg-white/95 dark:bg-slate-900/95 px-4 py-2 rounded-full flex items-center gap-2 text-slate-900 dark:text-white shadow-xl border border-white/20 dark:border-white/10">
                                         <span className="material-symbols-outlined text-sm text-primary">{getIcon(material.type)}</span>
-                                        <span className="text-[10px] font-black uppercase tracking-widest">{material.type === 'twee' ? 'interactive exercises' : material.type}</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">{getCategoryLabel(material.type)}</span>
                                     </div>
+                                    {material.language && (
+                                        <div className="absolute top-6 left-6 bg-slate-900/90 text-white px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-xl border border-white/10">
+                                            <span className="material-symbols-outlined text-[10px] text-primary">language</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest">{material.language === 'sv' ? 'SV' : material.language === 'fi' ? 'FI' : 'EN'}</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="p-10 flex-1 flex flex-col">
-                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 group-hover:text-primary transition-colors duration-300 leading-tight">
+                                <div className="p-6 flex-1 flex flex-col">
+                                    <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3 group-hover:text-primary transition-colors duration-300 leading-tight">
                                         {material.title}
                                     </h3>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm font-light leading-relaxed mb-8 line-clamp-3">
-                                        {material.description}
-                                    </p>
-                                    <div className="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                    <div className="mb-8">
+                                        <p className="text-slate-500 dark:text-slate-400 text-[13px] font-light leading-relaxed line-clamp-3">
+                                            {material.description}
+                                        </p>
+                                        {material.type === 'video' && (material.audio_language || material.subtitles_language || (material.subtitles_languages && material.subtitles_languages.length > 0)) && (
+                                            <div className="flex flex-wrap gap-2 mt-4">
+                                                {material.audio_language && (
+                                                    <span className="text-[9px] font-black uppercase bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 px-2 py-1 rounded">
+                                                        Audio: {material.audio_language}
+                                                    </span>
+                                                )}
+                                                {material.subtitles_language && (
+                                                    <span className="text-[9px] font-black uppercase bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded">
+                                                        Sub: {material.subtitles_language}
+                                                    </span>
+                                                )}
+                                                {material.subtitles_languages?.map(lang => (
+                                                    <span key={lang} className="text-[9px] font-black uppercase bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded">
+                                                        Sub: {lang}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <div className="size-2 rounded-full bg-primary animate-pulse" />
                                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ready to use</span>
@@ -215,11 +317,11 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                             <div>
                                 <h2 className="text-xl font-black text-slate-900 dark:text-white leading-tight mb-1">{selectedMaterial.title}</h2>
                                 <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
-                                    {selectedMaterial.type === 'twee' ? 'interactive exercises' : selectedMaterial.type}
+                                    {getCategoryLabel(selectedMaterial.type)}
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
-                                {(selectedMaterial.type === 'pdf' || selectedMaterial.type === 'presentation') && (
+                                {(selectedMaterial.type === 'pdf' || selectedMaterial.type === 'presentation' || selectedMaterial.type === 'lesson_plan' || selectedMaterial.type === 'worksheet') && (
                                     <button
                                         onClick={() => handleDownload(selectedMaterial)}
                                         className="hidden md:flex items-center gap-2 bg-slate-900 dark:bg-primary text-white px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-slate-900/10"
@@ -239,20 +341,34 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
 
                         <div className="flex-1 bg-frost relative overflow-hidden">
                             {selectedMaterial.type === 'video' ? (
-                                <iframe
-                                    src={`https://www.youtube.com/embed/${getYouTubeId(selectedMaterial.url || '')}`}
-                                    className="w-full h-full border-none"
-                                    allowFullScreen
-                                ></iframe>
-                            ) : selectedMaterial.type === 'twee' ? (
+                                getYouTubeId(selectedMaterial.url || '') ? (
+                                    <iframe
+                                        src={`https://www.youtube.com/embed/${getYouTubeId(selectedMaterial.url || '')}?rel=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                                        className="w-full h-full border-none"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        referrerPolicy="strict-origin-when-cross-origin"
+                                        allowFullScreen
+                                    ></iframe>
+                                ) : selectedMaterial.url?.match(/\.(mp4|webm|ogg)$/i) ? (
+                                    <video controls className="w-full h-full object-contain bg-black">
+                                        <source src={selectedMaterial.url} />
+                                    </video>
+                                ) : (
+                                    <iframe
+                                        src={selectedMaterial.url}
+                                        className="w-full h-full border-none bg-white"
+                                        allowFullScreen
+                                    ></iframe>
+                                )
+                            ) : selectedMaterial.type === 'twee' || selectedMaterial.type === 'article' ? (
                                 <div className="w-full h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50">
                                     <div className="relative mb-8">
                                         <div className="absolute inset-0 bg-primary/10 rounded-full"></div>
-                                        <span className="material-symbols-outlined text-[120px] text-primary relative z-1">interactive_space</span>
+                                        <span className="material-symbols-outlined text-[120px] text-primary relative z-1">{selectedMaterial.type === 'article' ? 'article' : 'interactive_space'}</span>
                                     </div>
-                                    <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tight">Interactive Exercise</h3>
+                                    <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tight">{selectedMaterial.type === 'article' ? 'External Article' : 'Interactive Exercise'}</h3>
                                     <p className="text-slate-500 dark:text-slate-400 max-w-md mb-10 text-lg font-light leading-relaxed">
-                                        This interactive exercise is designed to be completed in a focused, full-screen environment.
+                                        {selectedMaterial.type === 'article' ? 'This link will take you to an external article or post.' : 'This interactive exercise is designed to be completed in a focused, full-screen environment.'}
                                     </p>
                                     <a
                                         href={selectedMaterial.url}
@@ -260,11 +376,41 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                                         rel="noopener noreferrer"
                                         className="bg-primary text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
                                     >
-                                        Launch Exercise
+                                        {selectedMaterial.type === 'article' ? 'Read Article' : 'Launch Exercise'}
                                         <span className="material-symbols-outlined">open_in_new</span>
                                     </a>
                                 </div>
-                            ) : selectedMaterial.type === 'pdf' ? (
+                            ) : (selectedMaterial.type === 'pdf' || selectedMaterial.type === 'lesson_plan' || selectedMaterial.type === 'worksheet') && selectedMaterial.url?.match(/\.pdf(\?|$)/i) ? (
+                                <iframe
+                                    src={selectedMaterial.url || ''}
+                                    className="w-full h-full border-none bg-white"
+                                ></iframe>
+                            ) : selectedMaterial.type === 'worksheet' ? (
+                                <div className="w-full h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50 dark:bg-slate-900/50">
+                                    <div className="relative mb-8">
+                                        <div className="absolute inset-0 bg-primary/10 rounded-full"></div>
+                                        <span className="material-symbols-outlined text-[120px] text-primary relative z-1">edit_note</span>
+                                    </div>
+                                    <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tight">Worksheet Document</h3>
+                                    <p className="text-slate-500 dark:text-slate-400 max-w-md mb-10 text-lg font-light leading-relaxed">
+                                        {lang === 'sv' 
+                                            ? 'Ladda ner detta arbetsblad för att skriva ut eller använda i undervisningen.' 
+                                            : lang === 'fi' 
+                                                ? 'Lataa tämä tehtävämoniste tulostettavaksi tai käytettäväksi opetuksessa.' 
+                                                : 'Download this worksheet to print or use for class activities.'}
+                                    </p>
+                                    <button
+                                        onClick={() => handleDownload(selectedMaterial)}
+                                        className="bg-primary hover:bg-primary-hover text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 mx-auto"
+                                    >
+                                        <span className="material-symbols-outlined">download</span>
+                                        {lang === 'sv' ? 'Ladda ner arbetsblad' : lang === 'fi' ? 'Lataa tehtävämoniste' : 'Download Worksheet'}
+                                    </button>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-8 truncate max-w-xs">
+                                        {selectedMaterial.file_path?.split('/').pop() || selectedMaterial.url?.split('/').pop()}
+                                    </p>
+                                </div>
+                            ) : selectedMaterial.type === 'pdf' || selectedMaterial.type === 'lesson_plan' ? (
                                 <iframe
                                     src={selectedMaterial.url || ''}
                                     className="w-full h-full border-none"
@@ -314,7 +460,10 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
 };
 
 const getYouTubeId = (url: string) => {
+    if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    if (match && match[2].length === 11) return match[2];
+    if (url.length === 11) return url;
+    return null;
 };

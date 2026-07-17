@@ -24,7 +24,12 @@ export const BlogPage = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
 
-    const categories = ['All', 'Sauna Stories', 'Tradition', 'Wellness', 'Events'];
+    const allCategories = {
+        en: ['All', 'Sauna Stories', 'Tradition', 'Wellness', 'Events'],
+        sv: ['Alla', 'Bastuberättelser', 'Tradition', 'Välmående', 'Evenemang'],
+        fi: ['Kaikki', 'Saunatarinat', 'Perinne', 'Hyvinvointi', 'Tapahtumat']
+    };
+    const categories = allCategories[lang] || allCategories.en;
 
     useEffect(() => {
         fetchPosts();
@@ -95,14 +100,26 @@ export const BlogPage = ({
         return Math.ceil(words / wordsPerMinute);
     };
 
+    const getLocalizedPost = (post: any) => {
+        if (lang === 'sv' && post.title_sv && post.content_sv) {
+            return { ...post, title: post.title_sv, content: post.content_sv };
+        }
+        if (lang === 'fi' && post.title_fi && post.content_fi) {
+            return { ...post, title: post.title_fi, content: post.content_fi };
+        }
+        return post;
+    };
+
     const filteredPosts = useMemo(() => {
-        return posts.filter(post => {
+        const activeCategoryEnglish = allCategories.en[categories.indexOf(activeCategory)] || 'All';
+        
+        return posts.map(getLocalizedPost).filter(post => {
             const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 post.content.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesCategory = activeCategory === 'All' || post.category === activeCategory;
+            const matchesCategory = activeCategoryEnglish === 'All' || post.category === activeCategoryEnglish;
             return matchesSearch && matchesCategory;
         });
-    }, [posts, searchQuery, activeCategory]);
+    }, [posts, searchQuery, activeCategory, lang]);
 
     const featuredPost = filteredPosts[0];
     const restPosts = filteredPosts.slice(1);
@@ -145,6 +162,8 @@ export const BlogPage = ({
                 >
                     {lang === 'sv'
                         ? 'En digital samling av nordisk bastukultur, berättad av människorna som lever den.'
+                        : lang === 'fi'
+                        ? 'Digitaalinen kokoelma pohjoismaista saunakulttuuria, jonka kertovat sitä elävät ihmiset.'
                         : 'A premium digital gathering of Nordic sauna culture, told by the people who live it.'}
                 </motion.p>
             </header>
@@ -176,7 +195,7 @@ export const BlogPage = ({
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search the archive..."
+                                placeholder={lang === 'sv' ? 'Sök i arkivet...' : lang === 'fi' ? 'Hae arkistosta...' : 'Search the archive...'}
                                 className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl pl-12 pr-6 py-4 text-[10px] font-black uppercase tracking-widest placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-white focus:ring-4 focus:ring-primary/5 transition-all outline-none"
                             />
                         </div>
@@ -199,13 +218,13 @@ export const BlogPage = ({
                             <div className="absolute inset-0 border-4 border-slate-100 rounded-full" />
                             <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin" />
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 animate-pulse">Loading Stories...</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 animate-pulse">Loading Blog Posts...</p>
                     </div>
                 ) : filteredPosts.length === 0 ? (
                     <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-24 text-center border border-slate-100 dark:border-slate-800 transition-colors">
                         <span className="material-symbols-outlined text-6xl text-slate-100 dark:text-slate-800 mb-6">explore_off</span>
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase">No Matches Found</h3>
-                        <p className="text-slate-400 font-light mt-2">Try adjusting your filters or search terms.</p>
+                        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase">{lang === 'sv' ? 'Inga träffar' : lang === 'fi' ? 'Ei osumia' : 'No Matches Found'}</h3>
+                        <p className="text-slate-400 font-light mt-2">{lang === 'sv' ? 'Testa att justera dina filter eller sökord.' : lang === 'fi' ? 'Kokeile muuttaa suodattimia tai hakusanoja.' : 'Try adjusting your filters or search terms.'}</p>
                     </div>
                 ) : (
                     <div className="space-y-24">
@@ -223,7 +242,7 @@ export const BlogPage = ({
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent" />
                                 <div className="absolute bottom-0 left-0 right-0 p-12 md:p-20">
                                     <div className="flex items-center gap-4 mb-6">
-                                        <span className="bg-primary text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Featured Story</span>
+                                        <span className="bg-primary text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Featured Post</span>
                                         <span className="text-white/60 text-[10px] font-bold uppercase tracking-widest">{calculateReadTime(featuredPost.content)} min read</span>
                                     </div>
                                     <h2 className="text-4xl md:text-7xl font-black text-white uppercase mb-8 leading-[0.9] tracking-tighter max-w-3xl">
@@ -258,7 +277,7 @@ export const BlogPage = ({
                                             </div>
                                         )}
                                         <div className="absolute top-6 left-6 flex flex-col gap-2">
-                                            <span className="bg-white/95 text-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest self-start">{post.category || 'Sauna Story'}</span>
+                                            <span className="bg-white/95 text-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest self-start">{post.category || 'Sauna Stories'}</span>
                                         </div>
                                         <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                             <span className="bg-white text-slate-900 size-16 rounded-full flex items-center justify-center translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-2xl">
@@ -319,7 +338,7 @@ export const BlogPage = ({
 
                             <div className={`px-8 md:px-24 py-16 relative z-1 bg-white dark:bg-slate-900 rounded-t-[5rem] ${selectedPost.media_urls?.length ? '-mt-32' : ''}`}>
                                 <div className="flex flex-wrap items-center gap-6 mb-12">
-                                    <span className="bg-slate-900 dark:bg-primary text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">{selectedPost.category || 'Sauna Story'}</span>
+                                    <span className="bg-slate-900 dark:bg-primary text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">{selectedPost.category || 'Sauna Stories'}</span>
                                     <div className="flex items-center gap-3">
                                         <div className="size-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-black text-lg">
                                             {selectedPost.author_name?.charAt(0)}
@@ -350,7 +369,7 @@ export const BlogPage = ({
 
                                 {selectedPost.media_urls && selectedPost.media_urls.length > 1 && (
                                     <div className="space-y-8">
-                                        <h4 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 text-center mb-8">Story Gallery</h4>
+                                        <h4 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 text-center mb-8">Post Gallery</h4>
                                         <div className="columns-1 md:columns-2 gap-8 space-y-8">
                                             {selectedPost.media_urls.slice(1).map((url, i) => (
                                                 <img key={i} src={resolveUrl(url)} className="rounded-[2.5rem] w-full shadow-xl hover:scale-105 transition-transform duration-700" alt={`Gallery ${i}`} />
@@ -360,13 +379,30 @@ export const BlogPage = ({
                                 )}
 
                                 <div className="mt-24 pt-12 border-t border-slate-100 flex flex-col items-center gap-6">
-                                    <p className="text-xs font-black uppercase tracking-widest text-slate-300">Share this story</p>
+                                    <p className="text-xs font-black uppercase tracking-widest text-slate-300">{lang === 'sv' ? 'Dela detta inlägg' : lang === 'fi' ? 'Jaa tämä julkaisu' : 'Share this post'}</p>
                                     <div className="flex gap-4">
-                                        {['facebook', 'twitter', 'link'].map(icon => (
-                                            <button key={icon} className="size-16 rounded-full border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all">
-                                                <span className="material-symbols-outlined">{icon === 'link' ? 'content_copy' : icon}</span>
-                                            </button>
-                                        ))}
+                                        <button 
+                                            onClick={() => {
+                                                if (navigator.share) {
+                                                    navigator.share({
+                                                        title: selectedPost.title,
+                                                        url: window.location.href
+                                                    }).catch(console.error);
+                                                }
+                                            }}
+                                            className="size-16 rounded-full border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all"
+                                        >
+                                            <span className="material-symbols-outlined">share</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(window.location.href);
+                                                alert(lang === 'sv' ? 'Länk kopierad!' : lang === 'fi' ? 'Linkki kopioitu!' : 'Link copied to clipboard!');
+                                            }}
+                                            className="size-16 rounded-full border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all"
+                                        >
+                                            <span className="material-symbols-outlined">content_copy</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>

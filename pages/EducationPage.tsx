@@ -13,14 +13,21 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
     const [languageFilter, setLanguageFilter] = useState<LanguageCode | 'all'>('all');
     const [loading, setLoading] = useState(true);
     const [selectedMaterial, setSelectedMaterial] = useState<LearningMaterial | null>(null);
-    const archiveTopRef = useRef<HTMLDivElement>(null);
+    const resultsAnchorRef = useRef<HTMLDivElement>(null);
 
     const scrollToResults = () => {
-        if (typeof window !== 'undefined' && archiveTopRef.current) {
-            const yOffset = -90; // Clearance for fixed navbar
-            const element = archiveTopRef.current;
-            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-            window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+        if (typeof window !== 'undefined') {
+            setTimeout(() => {
+                if (resultsAnchorRef.current) {
+                    const navbarOffset = 85; // Clearance for top fixed navbar
+                    const elementPosition = resultsAnchorRef.current.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - navbarOffset;
+                    window.scrollTo({
+                        top: Math.max(0, offsetPosition),
+                        behavior: 'smooth'
+                    });
+                }
+            }, 60);
         }
     };
 
@@ -210,22 +217,19 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                     </motion.p>
                 </header>
 
-                {/* Target anchor for viewport repositioning */}
-                <div ref={archiveTopRef} className="scroll-mt-28" />
-
                 {/* Filters */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="flex flex-wrap justify-center gap-3 mb-6"
+                    className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-4"
                 >
                     {['all', 'pdf', 'presentation', 'video', 'twee', 'lesson_plan', 'article', 'worksheet'].map((t) => (
                         <button
                             key={t}
                             onClick={() => handleFilterChange(t as any)}
                             className={cn(
-                                "px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300 border shadow-sm active:scale-95",
+                                "px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all duration-300 border shadow-sm active:scale-95",
                                 filter === t
                                     ? "bg-slate-900 dark:bg-primary border-slate-900 dark:border-primary text-white shadow-xl shadow-slate-900/20"
                                     : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary/40 hover:text-primary dark:hover:text-white"
@@ -241,14 +245,14 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="flex flex-wrap justify-center gap-2 mb-10"
+                    className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-8"
                 >
                     {['all', 'en', 'fi', 'sv'].map((l) => (
                         <button
                             key={l}
                             onClick={() => handleLanguageFilterChange(l as any)}
                             className={cn(
-                                "px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-300 border shadow-sm active:scale-95",
+                                "px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-300 border shadow-sm active:scale-95",
                                 languageFilter === l
                                     ? "bg-slate-900 dark:bg-primary border-slate-900 dark:border-primary text-white shadow-xl shadow-slate-900/20"
                                     : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary/40 hover:text-primary dark:hover:text-white"
@@ -258,6 +262,9 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                         </button>
                     ))}
                 </motion.div>
+
+                {/* Target anchor for viewport repositioning - positioned directly at the first found record */}
+                <div ref={resultsAnchorRef} className="scroll-mt-24" />
 
                 {/* Results count & reset toolbar */}
                 {!loading && (

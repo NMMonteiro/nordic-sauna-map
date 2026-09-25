@@ -14,15 +14,6 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
     const [loading, setLoading] = useState(true);
     const [selectedMaterial, setSelectedMaterial] = useState<LearningMaterial | null>(null);
     const archiveTopRef = useRef<HTMLDivElement>(null);
-    const isIOS = typeof navigator !== 'undefined' && (
-        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-    );
-    const [viewerMode, setViewerMode] = useState<'google' | 'direct'>(isIOS ? 'direct' : 'google');
-
-    useEffect(() => {
-        setViewerMode(isIOS ? 'direct' : 'google');
-    }, [selectedMaterial?.id, isIOS]);
 
     const scrollToResults = () => {
         if (typeof window !== 'undefined' && archiveTopRef.current) {
@@ -537,14 +528,6 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2 shrink-0">
-                                                <button
-                                                    onClick={() => setViewerMode(m => m === 'google' ? 'direct' : 'google')}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors"
-                                                    title="Switch preview engine"
-                                                >
-                                                    <span className="material-symbols-outlined text-xs">tune</span>
-                                                    <span>{viewerMode === 'google' ? 'Google Docs' : 'Direct PDF'}</span>
-                                                </button>
                                                 <a
                                                     href={resolvedUrl}
                                                     target="_blank"
@@ -560,9 +543,7 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                                         {/* Mobile Notice Bar */}
                                         <div className="sm:hidden px-4 py-2 bg-primary/10 text-primary border-b border-primary/20 flex items-center justify-between gap-2 text-[10px] font-bold shrink-0">
                                             <span className="truncate">
-                                                {isIOS
-                                                    ? (lang === 'sv' ? 'iPhone: Öppna i Safari för flersidig läsning & zoom' : lang === 'fi' ? 'iPhone: Avaa Safarissa monisivuista lukua varten' : 'iPhone: Tap Open to view all pages & pinch-zoom')
-                                                    : (lang === 'sv' ? 'Mobiltips: Tryck på Öppna för helskärm och zoom' : lang === 'fi' ? 'Mobiilivinkki: Avaa koko ruudulla zoomausta varten' : 'Mobile tip: Tap Open for fullscreen & pinch-zoom')}
+                                                {lang === 'sv' ? 'Mobiltips: Bläddra bland sidorna eller öppna i ny flik' : lang === 'fi' ? 'Mobiilivinkki: Selaa sivuja tai avaa uuteen välilehteen' : 'Mobile tip: Scroll pages below or open in a new tab'}
                                             </span>
                                             <a
                                                 href={resolvedUrl}
@@ -577,9 +558,9 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                                         {/* PDF Frame */}
                                         <div className="flex-1 w-full h-full relative bg-slate-50 dark:bg-slate-900 overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
                                             <iframe
-                                                key={`${selectedMaterial.id}-${viewerMode}`}
+                                                key={selectedMaterial.id}
                                                 src={
-                                                    viewerMode === 'google' && resolvedUrl.startsWith('http')
+                                                    resolvedUrl.startsWith('http')
                                                         ? `https://docs.google.com/viewer?url=${encodeURIComponent(resolvedUrl)}&embedded=true`
                                                         : resolvedUrl
                                                 }

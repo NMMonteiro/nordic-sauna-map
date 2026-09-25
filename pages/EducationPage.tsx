@@ -13,6 +13,15 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
     const [languageFilter, setLanguageFilter] = useState<LanguageCode | 'all'>('all');
     const [loading, setLoading] = useState(true);
     const [selectedMaterial, setSelectedMaterial] = useState<LearningMaterial | null>(null);
+    const isIOS = typeof navigator !== 'undefined' && (
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    );
+    const [viewerMode, setViewerMode] = useState<'google' | 'direct'>(isIOS ? 'direct' : 'google');
+
+    useEffect(() => {
+        setViewerMode(isIOS ? 'direct' : 'google');
+    }, [selectedMaterial?.id, isIOS]);
 
     useEffect(() => {
         fetchMaterials();
@@ -91,27 +100,55 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
         }
     };
 
-    const handleDownload = async (material: LearningMaterial) => {
-        if (!material.file_path) {
-            const url = material.url;
-            if (url) window.open(url, '_blank');
-            return;
+    const getResolvedResourceUrl = (material: LearningMaterial | null): string => {
+        if (!material) return '';
+        if (material.file_path) {
+            return resolveMediaUrl(material.file_path, 'education');
         }
+        if (material.url) {
+            return resolveMediaUrl(material.url, 'education');
+        }
+        return '';
+    };
 
+    const isPdfResource = (material: LearningMaterial | null): boolean => {
+        if (!material) return false;
+        if (material.type === 'pdf') return true;
+        const url = (material.url || '').toLowerCase();
+        const filePath = (material.file_path || '').toLowerCase();
+        return url.includes('.pdf') || filePath.includes('.pdf');
+    };
+
+    const handleDownload = (material: LearningMaterial) => {
         try {
-            // Use centralized utility to resolve the URL
-            // If it's a file_path, resolve it from the 'education' bucket
-            // If it's a legacy Supabase URL, the utility will convert it
-            let downloadUrl = material.file_path 
-                ? resolveMediaUrl(material.file_path, 'education')
-                : resolveMediaUrl(material.url, 'education');
-
-            if (downloadUrl) {
-                window.open(downloadUrl, '_blank');
+            const downloadUrl = getResolvedResourceUrl(material);
+            if (!downloadUrl) {
+                alert(lang === 'sv' ? 'Resurslänken är inte tillgänglig.' : lang === 'fi' ? 'Resurssilinkki ei ole saatavilla.' : 'Resource link is not available.');
+                return;
             }
+
+            const fileName = material.file_path?.split('/').pop() || 
+                material.url?.split('/').pop()?.split('?')[0] || 
+                `${material.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         } catch (error) {
             console.error('Download failed:', error);
-            alert('Failed to access the resource. It may have been moved or deleted.');
+            alert(lang === 'sv' ? 'Kunde inte ladda ner resursen.' : lang === 'fi' ? 'Resurssin lataaminen epäonnistui.' : 'Failed to download resource.');
+        }
+    };
+
+    const handleOpenNative = (material: LearningMaterial) => {
+        const downloadUrl = getResolvedResourceUrl(material);
+        if (downloadUrl) {
+            window.open(downloadUrl, '_blank', 'noopener,noreferrer');
         }
     };
 
@@ -309,152 +346,237 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
             </div>
 
             {/* Content Viewer Modal */}
-            {selectedMaterial && (
-                <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4 md:p-10">
-                    <div className="absolute inset-0 bg-slate-900/90 dark:bg-slate-950/95" onClick={() => setSelectedMaterial(null)}></div>
-                    <div className="relative bg-white dark:bg-slate-900 w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in duration-300">
-                        <div className="flex items-center justify-between px-8 py-6 border-b border-sky/10 dark:border-slate-800">
-                            <div>
-                                <h2 className="text-xl font-black text-slate-900 dark:text-white leading-tight mb-1">{selectedMaterial.title}</h2>
-                                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
-                                    {getCategoryLabel(selectedMaterial.type)}
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                {(selectedMaterial.type === 'pdf' || selectedMaterial.type === 'presentation' || selectedMaterial.type === 'lesson_plan' || selectedMaterial.type === 'worksheet') && (
-                                    <button
-                                        onClick={() => handleDownload(selectedMaterial)}
-                                        className="hidden md:flex items-center gap-2 bg-slate-900 dark:bg-primary text-white px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-slate-900/10"
-                                    >
-                                        <span className="material-symbols-outlined text-sm">download</span>
-                                        Download Resource
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => setSelectedMaterial(null)}
-                                    className="size-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-all"
-                                >
-                                    <span className="material-symbols-outlined font-black">close</span>
-                                </button>
-                            </div>
-                        </div>
+            {selectedMaterial && (() => {
+                const resolvedUrl = getResolvedResourceUrl(selectedMaterial);
+                const resourceFileName = selectedMaterial.file_path?.split('/').pop() || 
+                    selectedMaterial.url?.split('/').pop()?.split('?')[0] || 
+                    `${selectedMaterial.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.${selectedMaterial.type === 'presentation' ? 'pptx' : 'pdf'}`;
 
-                        <div className="flex-1 bg-frost relative overflow-hidden">
-                            {selectedMaterial.type === 'video' ? (
-                                getYouTubeId(selectedMaterial.url || '') ? (
-                                    <iframe
-                                        src={`https://www.youtube.com/embed/${getYouTubeId(selectedMaterial.url || '')}?rel=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-                                        className="w-full h-full border-none"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                        referrerPolicy="strict-origin-when-cross-origin"
-                                        allowFullScreen
-                                    ></iframe>
-                                ) : selectedMaterial.url?.match(/\.(mp4|webm|ogg)$/i) ? (
-                                    <video controls className="w-full h-full object-contain bg-black">
-                                        <source src={selectedMaterial.url} />
-                                    </video>
+                return (
+                    <div className="fixed inset-0 z-[20000] flex items-center justify-center p-3 sm:p-4 md:p-8">
+                        <div className="absolute inset-0 bg-slate-900/90 dark:bg-slate-950/95" onClick={() => setSelectedMaterial(null)}></div>
+                        <div className="relative bg-white dark:bg-slate-900 w-full h-full max-h-[94vh] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in duration-300">
+                            <div className="flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 border-b border-sky/10 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900 z-10">
+                                <div className="min-w-0 pr-3">
+                                    <h2 className="text-base sm:text-xl font-black text-slate-900 dark:text-white leading-tight mb-1 truncate max-w-[200px] sm:max-w-md md:max-w-xl">
+                                        {selectedMaterial.title}
+                                    </h2>
+                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
+                                        {getCategoryLabel(selectedMaterial.type)}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                                    {(selectedMaterial.type === 'pdf' || selectedMaterial.type === 'presentation' || selectedMaterial.type === 'lesson_plan' || selectedMaterial.type === 'worksheet') && (
+                                        <>
+                                            <a
+                                                href={resolvedUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-md shadow-primary/20"
+                                                title={lang === 'sv' ? 'Öppna i ny flik' : lang === 'fi' ? 'Avaa uuteen välilehteen' : 'Open in New Tab'}
+                                            >
+                                                <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                                <span className="hidden sm:inline">{lang === 'sv' ? 'Öppna' : lang === 'fi' ? 'Avaa' : 'Open'}</span>
+                                            </a>
+                                            <a
+                                                href={resolvedUrl}
+                                                download={resourceFileName}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1.5 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-md"
+                                                title={lang === 'sv' ? 'Ladda ner resurs' : lang === 'fi' ? 'Lataa resurssi' : 'Download Resource'}
+                                            >
+                                                <span className="material-symbols-outlined text-sm">download</span>
+                                                <span className="hidden sm:inline">{lang === 'sv' ? 'Ladda ner' : lang === 'fi' ? 'Lataa' : 'Download'}</span>
+                                            </a>
+                                        </>
+                                    )}
+                                    <button
+                                        onClick={() => setSelectedMaterial(null)}
+                                        className="size-10 sm:size-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-all shrink-0"
+                                        aria-label="Close"
+                                    >
+                                        <span className="material-symbols-outlined font-black text-lg">close</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 bg-frost relative overflow-hidden">
+                                {selectedMaterial.type === 'video' ? (
+                                    getYouTubeId(selectedMaterial.url || '') ? (
+                                        <iframe
+                                            src={`https://www.youtube.com/embed/${getYouTubeId(selectedMaterial.url || '')}?rel=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                                            className="w-full h-full border-none"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                            referrerPolicy="strict-origin-when-cross-origin"
+                                            allowFullScreen
+                                        ></iframe>
+                                    ) : selectedMaterial.url?.match(/\.(mp4|webm|ogg)$/i) ? (
+                                        <video controls className="w-full h-full object-contain bg-black">
+                                            <source src={selectedMaterial.url} />
+                                        </video>
+                                    ) : (
+                                        <iframe
+                                            src={selectedMaterial.url}
+                                            className="w-full h-full border-none bg-white"
+                                            allowFullScreen
+                                        ></iframe>
+                                    )
+                                ) : selectedMaterial.type === 'twee' || selectedMaterial.type === 'article' ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50">
+                                        <div className="relative mb-8">
+                                            <div className="absolute inset-0 bg-primary/10 rounded-full"></div>
+                                            <span className="material-symbols-outlined text-[120px] text-primary relative z-1">{selectedMaterial.type === 'article' ? 'article' : 'interactive_space'}</span>
+                                        </div>
+                                        <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tight">{selectedMaterial.type === 'article' ? 'External Article' : 'Interactive Exercise'}</h3>
+                                        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-10 text-lg font-light leading-relaxed">
+                                            {selectedMaterial.type === 'article' ? 'This link will take you to an external article or post.' : 'This interactive exercise is designed to be completed in a focused, full-screen environment.'}
+                                        </p>
+                                        <a
+                                            href={selectedMaterial.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="bg-primary text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
+                                        >
+                                            {selectedMaterial.type === 'article' ? 'Read Article' : 'Launch Exercise'}
+                                            <span className="material-symbols-outlined">open_in_new</span>
+                                        </a>
+                                    </div>
+                                ) : isPdfResource(selectedMaterial) ? (
+                                    <div className="w-full h-full flex flex-col relative overflow-hidden bg-slate-100 dark:bg-slate-950">
+                                        {/* Responsive PDF Viewer Top Bar */}
+                                        <div className="px-4 py-2.5 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 text-xs shrink-0">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <span className="material-symbols-outlined text-primary text-base shrink-0">picture_as_pdf</span>
+                                                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[180px] sm:max-w-md">
+                                                    {resourceFileName}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button
+                                                    onClick={() => setViewerMode(m => m === 'google' ? 'direct' : 'google')}
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors"
+                                                    title="Switch preview engine"
+                                                >
+                                                    <span className="material-symbols-outlined text-xs">tune</span>
+                                                    <span>{viewerMode === 'google' ? 'Google Docs' : 'Direct PDF'}</span>
+                                                </button>
+                                                <a
+                                                    href={resolvedUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-primary text-white hover:bg-primary-hover shadow-sm transition-all"
+                                                >
+                                                    <span className="material-symbols-outlined text-xs">fullscreen</span>
+                                                    <span>{lang === 'sv' ? 'Helskärm' : lang === 'fi' ? 'Koko näyttö' : 'Fullscreen'}</span>
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        {/* Mobile Notice Bar */}
+                                        <div className="sm:hidden px-4 py-2 bg-primary/10 text-primary border-b border-primary/20 flex items-center justify-between gap-2 text-[10px] font-bold shrink-0">
+                                            <span className="truncate">
+                                                {isIOS
+                                                    ? (lang === 'sv' ? 'iPhone: Öppna i Safari för flersidig läsning & zoom' : lang === 'fi' ? 'iPhone: Avaa Safarissa monisivuista lukua varten' : 'iPhone: Tap Open to view all pages & pinch-zoom')
+                                                    : (lang === 'sv' ? 'Mobiltips: Tryck på Öppna för helskärm och zoom' : lang === 'fi' ? 'Mobiilivinkki: Avaa koko ruudulla zoomausta varten' : 'Mobile tip: Tap Open for fullscreen & pinch-zoom')}
+                                            </span>
+                                            <a
+                                                href={resolvedUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="font-black shrink-0 uppercase tracking-wider bg-primary text-white px-2.5 py-1 rounded-md text-[10px]"
+                                            >
+                                                {lang === 'sv' ? 'Öppna' : lang === 'fi' ? 'Avaa' : 'Open'}
+                                            </a>
+                                        </div>
+
+                                        {/* PDF Frame */}
+                                        <div className="flex-1 w-full h-full relative bg-slate-50 dark:bg-slate-900 overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                                            <iframe
+                                                key={`${selectedMaterial.id}-${viewerMode}`}
+                                                src={
+                                                    viewerMode === 'google' && resolvedUrl.startsWith('http')
+                                                        ? `https://docs.google.com/viewer?url=${encodeURIComponent(resolvedUrl)}&embedded=true`
+                                                        : resolvedUrl
+                                                }
+                                                className="w-full h-full border-none bg-white min-h-[400px]"
+                                                title={selectedMaterial.title}
+                                                allowFullScreen
+                                            />
+                                        </div>
+                                    </div>
+                                ) : selectedMaterial.type === 'worksheet' ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50 dark:bg-slate-900/50">
+                                        <div className="relative mb-8">
+                                            <div className="absolute inset-0 bg-primary/10 rounded-full"></div>
+                                            <span className="material-symbols-outlined text-[120px] text-primary relative z-1">edit_note</span>
+                                        </div>
+                                        <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tight">Worksheet Document</h3>
+                                        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-10 text-lg font-light leading-relaxed">
+                                            {lang === 'sv' 
+                                                ? 'Ladda ner detta arbetsblad för att skriva ut eller använda i undervisningen.' 
+                                                : lang === 'fi' 
+                                                    ? 'Lataa tämä tehtävämoniste tulostettavaksi tai käytettäväksi opetuksessa.' 
+                                                    : 'Download this worksheet to print or use for class activities.'}
+                                        </p>
+                                        <a
+                                            href={resolvedUrl}
+                                            download={resourceFileName}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="bg-primary hover:bg-primary-hover text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 mx-auto"
+                                        >
+                                            <span className="material-symbols-outlined">download</span>
+                                            {lang === 'sv' ? 'Ladda ner arbetsblad' : lang === 'fi' ? 'Lataa tehtävämoniste' : 'Download Worksheet'}
+                                        </a>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-8 truncate max-w-xs">
+                                            {resourceFileName}
+                                        </p>
+                                    </div>
+                                ) : selectedMaterial.type === 'presentation' ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50">
+                                        <div className="relative mb-8">
+                                            <div className="absolute inset-0 bg-primary/10 rounded-full"></div>
+                                            <span className="material-symbols-outlined text-[120px] text-primary relative z-1">present_to_all</span>
+                                        </div>
+                                        <h3 className="text-3xl font-black text-slate-900 mb-4 uppercase tracking-tight">PowerPoint Presentation</h3>
+                                        <p className="text-slate-500 max-w-md mb-10 text-lg font-light leading-relaxed">
+                                            For the best viewing experience, download this presentation to view it in PowerPoint or your preferred presentation software.
+                                        </p>
+                                        <a
+                                            href={resolvedUrl}
+                                            download={resourceFileName}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="bg-primary hover:bg-primary-hover text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
+                                        >
+                                            <span className="material-symbols-outlined">download</span>
+                                            Download Presentation
+                                        </a>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-8">
+                                            {resourceFileName}
+                                        </p>
+                                    </div>
                                 ) : (
-                                    <iframe
-                                        src={selectedMaterial.url}
-                                        className="w-full h-full border-none bg-white"
-                                        allowFullScreen
-                                    ></iframe>
-                                )
-                            ) : selectedMaterial.type === 'twee' || selectedMaterial.type === 'article' ? (
-                                <div className="w-full h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50">
-                                    <div className="relative mb-8">
-                                        <div className="absolute inset-0 bg-primary/10 rounded-full"></div>
-                                        <span className="material-symbols-outlined text-[120px] text-primary relative z-1">{selectedMaterial.type === 'article' ? 'article' : 'interactive_space'}</span>
+                                    <div className="w-full h-full flex flex-col items-center justify-center p-12 text-center">
+                                        <span className="material-symbols-outlined text-8xl text-primary/20 mb-6">{getIcon(selectedMaterial.type)}</span>
+                                        <h3 className="text-2xl font-black text-slate-900 mb-4 uppercase">Resource Available</h3>
+                                        <p className="text-slate-500 max-w-md mb-8">This {selectedMaterial.type} resource is available for download or viewing.</p>
+                                        <a
+                                            href={selectedMaterial.url || '#'}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="bg-primary text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-transform"
+                                        >
+                                            Open Full Resource
+                                        </a>
                                     </div>
-                                    <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tight">{selectedMaterial.type === 'article' ? 'External Article' : 'Interactive Exercise'}</h3>
-                                    <p className="text-slate-500 dark:text-slate-400 max-w-md mb-10 text-lg font-light leading-relaxed">
-                                        {selectedMaterial.type === 'article' ? 'This link will take you to an external article or post.' : 'This interactive exercise is designed to be completed in a focused, full-screen environment.'}
-                                    </p>
-                                    <a
-                                        href={selectedMaterial.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="bg-primary text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
-                                    >
-                                        {selectedMaterial.type === 'article' ? 'Read Article' : 'Launch Exercise'}
-                                        <span className="material-symbols-outlined">open_in_new</span>
-                                    </a>
-                                </div>
-                            ) : (selectedMaterial.type === 'pdf' || selectedMaterial.type === 'lesson_plan' || selectedMaterial.type === 'worksheet') && selectedMaterial.url?.match(/\.pdf(\?|$)/i) ? (
-                                <iframe
-                                    src={selectedMaterial.url || ''}
-                                    className="w-full h-full border-none bg-white"
-                                ></iframe>
-                            ) : selectedMaterial.type === 'worksheet' ? (
-                                <div className="w-full h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50 dark:bg-slate-900/50">
-                                    <div className="relative mb-8">
-                                        <div className="absolute inset-0 bg-primary/10 rounded-full"></div>
-                                        <span className="material-symbols-outlined text-[120px] text-primary relative z-1">edit_note</span>
-                                    </div>
-                                    <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tight">Worksheet Document</h3>
-                                    <p className="text-slate-500 dark:text-slate-400 max-w-md mb-10 text-lg font-light leading-relaxed">
-                                        {lang === 'sv' 
-                                            ? 'Ladda ner detta arbetsblad för att skriva ut eller använda i undervisningen.' 
-                                            : lang === 'fi' 
-                                                ? 'Lataa tämä tehtävämoniste tulostettavaksi tai käytettäväksi opetuksessa.' 
-                                                : 'Download this worksheet to print or use for class activities.'}
-                                    </p>
-                                    <button
-                                        onClick={() => handleDownload(selectedMaterial)}
-                                        className="bg-primary hover:bg-primary-hover text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 mx-auto"
-                                    >
-                                        <span className="material-symbols-outlined">download</span>
-                                        {lang === 'sv' ? 'Ladda ner arbetsblad' : lang === 'fi' ? 'Lataa tehtävämoniste' : 'Download Worksheet'}
-                                    </button>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-8 truncate max-w-xs">
-                                        {selectedMaterial.file_path?.split('/').pop() || selectedMaterial.url?.split('/').pop()}
-                                    </p>
-                                </div>
-                            ) : selectedMaterial.type === 'pdf' || selectedMaterial.type === 'lesson_plan' ? (
-                                <iframe
-                                    src={selectedMaterial.url || ''}
-                                    className="w-full h-full border-none"
-                                ></iframe>
-                            ) : selectedMaterial.type === 'presentation' ? (
-                                <div className="w-full h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50">
-                                    <div className="relative mb-8">
-                                        <div className="absolute inset-0 bg-primary/10 rounded-full"></div>
-                                        <span className="material-symbols-outlined text-[120px] text-primary relative z-1">present_to_all</span>
-                                    </div>
-                                    <h3 className="text-3xl font-black text-slate-900 mb-4 uppercase tracking-tight">PowerPoint Presentation</h3>
-                                    <p className="text-slate-500 max-w-md mb-10 text-lg font-light leading-relaxed">
-                                        For the best viewing experience, download this presentation to view it in PowerPoint or your preferred presentation software.
-                                    </p>
-                                    <button
-                                        onClick={() => handleDownload(selectedMaterial)}
-                                        className="bg-primary text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
-                                    >
-                                        <span className="material-symbols-outlined">download</span>
-                                        Download Presentation
-                                    </button>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-8">
-                                        {selectedMaterial.file_path?.split('/').pop()}
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center p-12 text-center">
-                                    <span className="material-symbols-outlined text-8xl text-primary/20 mb-6">{getIcon(selectedMaterial.type)}</span>
-                                    <h3 className="text-2xl font-black text-slate-900 mb-4 uppercase">Resource Available</h3>
-                                    <p className="text-slate-500 max-w-md mb-8">This {selectedMaterial.type} resource is available for download or viewing.</p>
-                                    <a
-                                        href={selectedMaterial.url || '#'}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="bg-primary text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-transform"
-                                    >
-                                        Open Full Resource
-                                    </a>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
-                    </div >
-                </div >
-            )}
+                    </div>
+                );
+            })()}
         </div >
     );
 };

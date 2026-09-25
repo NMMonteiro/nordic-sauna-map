@@ -143,6 +143,8 @@ export const ComparativeReportPage = ({ lang }: ComparativeReportPageProps) => {
                     <motion.a
                         href="/Comparative_Report_Sauna_Culture.pdf"
                         download="Comparative_Report_Sauna_Culture.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.2 }}
@@ -344,6 +346,32 @@ export const ComparativeReportPage = ({ lang }: ComparativeReportPageProps) => {
                                             {report.future.finlandSummaryText}
                                         </p>
                                     </div>
+                                </div>
+
+                                <div className="mt-12 p-8 md:p-10 rounded-[2.5rem] bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xl shadow-primary/5">
+                                    <div className="space-y-2">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">PDF Document • 21.5 MB</span>
+                                        <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                            {lang === 'sv' ? 'Fullständig jämförande rapport' : lang === 'fi' ? 'Täydellinen vertailuraportti' : 'Complete Comparative Report'}
+                                        </h3>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-light max-w-lg m-0">
+                                            {lang === 'sv' 
+                                                ? 'Ladda ner hela rapporten i PDF-format för offline-läsning, utskrift eller arkivering.' 
+                                                : lang === 'fi' 
+                                                    ? 'Lataa koko raportti PDF-muodossa offline-lukemista, tulostamista tai arkistointia varten.' 
+                                                    : 'Download the full report in high-resolution PDF format for offline reading, printing, or archival.'}
+                                        </p>
+                                    </div>
+                                    <a
+                                        href="/Comparative_Report_Sauna_Culture.pdf"
+                                        download="Comparative_Report_Sauna_Culture.pdf"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="shrink-0 flex items-center gap-3 bg-primary hover:bg-primary-hover text-white px-8 py-4 rounded-full text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                    >
+                                        <ArrowDownToLine className="size-4" />
+                                        {t.downloadBtn}
+                                    </a>
                                 </div>
                             </div>
                         </section>

@@ -102,6 +102,12 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
 
     const getResolvedResourceUrl = (material: LearningMaterial | null): string => {
         if (!material) return '';
+        if (material.url && material.url.startsWith('http')) {
+            return material.url;
+        }
+        if (material.file_path && material.file_path.startsWith('http')) {
+            return material.file_path;
+        }
         if (material.file_path) {
             return resolveMediaUrl(material.file_path, 'education');
         }

@@ -57,7 +57,17 @@ export const resolveMediaUrl = (path: string | undefined, bucket: StorageBucket 
     }
 
     // Clean the path (remove leading slash)
-    const cleanPath = targetPath.startsWith('/') ? targetPath.slice(1) : targetPath;
+    let cleanPath = targetPath.startsWith('/') ? targetPath.slice(1) : targetPath;
+
+    // Prevent duplicate bucket prefix if cleanPath already starts with targetBucket or known buckets
+    const knownBuckets: StorageBucket[] = ['sauna-media', 'blog-media', 'education', 'newsletter'];
+    for (const b of knownBuckets) {
+        if (cleanPath.startsWith(`${b}/`)) {
+            cleanPath = cleanPath.slice(b.length + 1);
+            targetBucket = b;
+            break;
+        }
+    }
 
     // Map logical buckets to their respective Firebase prefixes
     const firebasePath = `${targetBucket}/${cleanPath}`;

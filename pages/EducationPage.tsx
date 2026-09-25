@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db, storage } from '../lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { ref, getDownloadURL } from 'firebase/storage';
@@ -13,6 +13,7 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
     const [languageFilter, setLanguageFilter] = useState<LanguageCode | 'all'>('all');
     const [loading, setLoading] = useState(true);
     const [selectedMaterial, setSelectedMaterial] = useState<LearningMaterial | null>(null);
+    const archiveTopRef = useRef<HTMLDivElement>(null);
     const isIOS = typeof navigator !== 'undefined' && (
         /iPad|iPhone|iPod/.test(navigator.userAgent) ||
         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
@@ -22,6 +23,25 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
     useEffect(() => {
         setViewerMode(isIOS ? 'direct' : 'google');
     }, [selectedMaterial?.id, isIOS]);
+
+    const scrollToResults = () => {
+        if (typeof window !== 'undefined' && archiveTopRef.current) {
+            const yOffset = -90; // Clearance for fixed navbar
+            const element = archiveTopRef.current;
+            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+        }
+    };
+
+    const handleFilterChange = (newFilter: MaterialType | 'all') => {
+        setFilter(newFilter);
+        scrollToResults();
+    };
+
+    const handleLanguageFilterChange = (newLang: LanguageCode | 'all') => {
+        setLanguageFilter(newLang);
+        scrollToResults();
+    };
 
     useEffect(() => {
         fetchMaterials();
@@ -199,6 +219,9 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                     </motion.p>
                 </header>
 
+                {/* Target anchor for viewport repositioning */}
+                <div ref={archiveTopRef} className="scroll-mt-28" />
+
                 {/* Filters */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -209,7 +232,7 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                     {['all', 'pdf', 'presentation', 'video', 'twee', 'lesson_plan', 'article', 'worksheet'].map((t) => (
                         <button
                             key={t}
-                            onClick={() => setFilter(t as any)}
+                            onClick={() => handleFilterChange(t as any)}
                             className={cn(
                                 "px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300 border shadow-sm active:scale-95",
                                 filter === t
@@ -227,12 +250,12 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="flex flex-wrap justify-center gap-2 mb-16"
+                    className="flex flex-wrap justify-center gap-2 mb-10"
                 >
                     {['all', 'en', 'fi', 'sv'].map((l) => (
                         <button
                             key={l}
-                            onClick={() => setLanguageFilter(l as any)}
+                            onClick={() => handleLanguageFilterChange(l as any)}
                             className={cn(
                                 "px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-300 border shadow-sm active:scale-95",
                                 languageFilter === l
@@ -245,6 +268,31 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                     ))}
                 </motion.div>
 
+                {/* Results count & reset toolbar */}
+                {!loading && (
+                    <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200/60 dark:border-slate-800 text-xs text-slate-500">
+                        <span className="font-bold text-slate-700 dark:text-slate-300 tracking-wide">
+                            {filteredMaterials.length}{' '}
+                            {filteredMaterials.length === 1
+                                ? (lang === 'sv' ? 'resurs tillgänglig' : lang === 'fi' ? 'resurssi saatavilla' : 'resource available')
+                                : (lang === 'sv' ? 'resurser tillgängliga' : lang === 'fi' ? 'resurssia saatavilla' : 'resources available')}
+                        </span>
+                        {(filter !== 'all' || languageFilter !== 'all') && (
+                            <button
+                                onClick={() => {
+                                    setFilter('all');
+                                    setLanguageFilter('all');
+                                    scrollToResults();
+                                }}
+                                className="text-primary hover:underline font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-sm">restart_alt</span>
+                                <span>{lang === 'sv' ? 'Återställ filter' : lang === 'fi' ? 'Nollaa suodattimet' : 'Reset filters'}</span>
+                            </button>
+                        )}
+                    </div>
+                )}
+
                 {loading ? (
                     <div className="flex flex-col justify-center items-center h-96 gap-6">
                         <div className="relative size-16">
@@ -254,20 +302,48 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Loading Archive...</p>
                     </div>
                 ) : (
-                    <motion.div
-                        key={`${filter}-${languageFilter}`}
-                        initial="hidden"
-                        animate="visible"
-                        variants={{
-                            hidden: { opacity: 0 },
-                            visible: {
-                                opacity: 1,
-                                transition: { staggerChildren: 0.1 }
-                            }
-                        }}
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                    >
-                        {filteredMaterials.map((material) => (
+                    <div className="min-h-[550px] flex flex-col">
+                        {filteredMaterials.length === 0 ? (
+                            <div className="flex-1 py-16 px-6 text-center flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 my-8">
+                                <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
+                                    <span className="material-symbols-outlined text-3xl">inventory_2</span>
+                                </div>
+                                <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">
+                                    {lang === 'sv' ? 'Inga resurser matchar filtret' : lang === 'fi' ? 'Ei resursseja valitulle suodattimelle' : 'No Resources Found'}
+                                </h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6 font-light">
+                                    {lang === 'sv'
+                                        ? 'Det finns inga filer i denna kategori för det valda språket. Prova en annan kategori eller välj Alla Språk.'
+                                        : lang === 'fi'
+                                            ? 'Tässä kategoriassa ei ole tiedostoja valitulla kielellä. Kokeile toista kategoriaa tai valitse Kaikki Kielet.'
+                                            : 'There are no files in this category for the selected language. Try another category or choose All Languages.'}
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        setFilter('all');
+                                        setLanguageFilter('all');
+                                        scrollToResults();
+                                    }}
+                                    className="px-6 py-2.5 rounded-full bg-primary text-white text-xs font-black uppercase tracking-wider hover:bg-primary-hover active:scale-95 transition-all shadow-md shadow-primary/20"
+                                >
+                                    {lang === 'sv' ? 'Visa alla resurser' : lang === 'fi' ? 'Näytä kaikki' : 'Show All Resources'}
+                                </button>
+                            </div>
+                        ) : (
+                            <motion.div
+                                key={`${filter}-${languageFilter}`}
+                                initial="hidden"
+                                animate="visible"
+                                variants={{
+                                    hidden: { opacity: 0 },
+                                    visible: {
+                                        opacity: 1,
+                                        transition: { staggerChildren: 0.08 }
+                                    }
+                                }}
+                                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                            >
+                                {filteredMaterials.map((material) => (
                             <motion.div
                                 key={material.id}
                                 variants={{
@@ -347,7 +423,9 @@ export const EducationPage = ({ lang }: { lang: LanguageCode }) => {
                                 </div>
                             </motion.div>
                         ))}
-                    </motion.div>
+                            </motion.div>
+                        )}
+                    </div>
                 )}
             </div>
 
